@@ -31,6 +31,10 @@ const swaggerOptions = {
     },
     servers: [
       {
+        url: "https://help-farmers-make-better-decisions.onrender.com",
+        description: "Production server",
+      },
+      {
         url: `http://localhost:${process.env.PORT || 3000}`,
         description: "Development server",
       },
