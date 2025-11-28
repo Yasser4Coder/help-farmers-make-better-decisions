@@ -4,16 +4,9 @@ const ApiError = require("../utils/ApiError");
 const { StatusCodes } = require("../constants");
 const logger = require("../config/logger");
 
-/**
- * Weather Service
- */
 class WeatherService {
-  /**
-   * Calculate sunlight hours from sunrise and sunset times
-   */
   static calculateSunlightHours(sunrise, sunset) {
     try {
-      // Parse time strings like "06:14 AM" and "07:20 PM"
       const parseTime = (timeStr) => {
         const [time, period] = timeStr.split(" ");
         const [hours, minutes] = time.split(":").map(Number);
@@ -26,32 +19,23 @@ class WeatherService {
       const sunriseHour = parseTime(sunrise);
       const sunsetHour = parseTime(sunset);
       const hours = sunsetHour - sunriseHour;
-      return Math.max(0, Math.round(hours * 100) / 100); // Round to 2 decimals
+      return Math.max(0, Math.round(hours * 100) / 100);
     } catch (error) {
       logger.warn("Error calculating sunlight hours:", error);
       return null;
     }
   }
 
-  /**
-   * Determine season from date
-   */
   static determineSeason(date) {
-    const month = new Date(date).getMonth() + 1; // 1-12
-    // Algeria seasons (Northern Hemisphere)
+    const month = new Date(date).getMonth() + 1;
     if (month >= 6 && month <= 8) return "Summer";
     if (month >= 12 || month <= 2) return "Winter";
-    // Spring (Mar-May) and Fall (Sep-Nov) - treating as "Monsoon" for rainy seasons
     return "Monsoon";
   }
 
-  /**
-   * Check for extreme weather conditions
-   */
   static checkExtremeWeather(dayData) {
     const frost = dayData.mintemp_c < 0;
-    const heatwave = dayData.maxtemp_c > 35; // Threshold for heatwave
-    // Storm: high wind (>50 km/h) or significant precipitation (>10mm)
+    const heatwave = dayData.maxtemp_c > 35;
     const storm = dayData.maxwind_kph > 50 || dayData.totalprecip_mm > 10;
 
     return { frost, heatwaves: heatwave, storms: storm };
@@ -98,11 +82,7 @@ class WeatherService {
     }
   }
 
-  /**
-   * Process and save weather data for a date range
-   */
   static async saveWeatherData(landId, clientId, lat, lng, startDate, endDate) {
-    // Validate required parameters
     if (!landId || !clientId) {
       throw new ApiError(
         StatusCodes.BAD_REQUEST,
@@ -110,7 +90,6 @@ class WeatherService {
       );
     }
 
-    // Fetch data from API
     const apiData = await this.fetchWeatherData(lat, lng, startDate, endDate);
 
     if (!apiData.forecast || !apiData.forecast.forecastday) {
@@ -123,38 +102,29 @@ class WeatherService {
     const savedRecords = [];
     const errors = [];
 
-    // Process each day
     for (const forecastDay of apiData.forecast.forecastday) {
       try {
         const dayData = forecastDay.day;
         const astroData = forecastDay.astro;
         const date = forecastDay.date;
 
-        // Calculate sunlight hours
         const sunlightHours = this.calculateSunlightHours(
           astroData.sunrise,
           astroData.sunset
         );
 
-        // Determine season
         const season = this.determineSeason(date);
 
-        // Check extreme weather
         const extremeWeather = this.checkExtremeWeather(dayData);
 
-        // Calculate rate of water loss (simplified: using evapotranspiration estimate)
-        // This is a rough estimate - in production, you'd use proper ET calculations
         const rateOfWaterLoss =
           dayData.avgtemp_c > 0
             ? (dayData.avgtemp_c * dayData.avghumidity) / 100
             : 0;
 
-        // Prepare weather date for time column
         const weatherDate = new Date(date);
-        weatherDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+        weatherDate.setHours(12, 0, 0, 0);
 
-        // Check if record already exists for this date and land
-        // Using raw query to check by time column (or created_at as fallback)
         const { sequelize } = require("../config/db");
 
         const existingRecords = await sequelize.query(
