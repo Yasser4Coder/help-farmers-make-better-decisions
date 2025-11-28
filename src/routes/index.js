@@ -4,6 +4,7 @@ const farmerAuthRoutes = require("./farmerAuth.routes");
 const ingAuthRoutes = require("./ingAuth.routes");
 const notificationRoutes = require("./notification.routes");
 const weatherRoutes = require("./weather.routes");
+const farmerRoutes = require("./farmer.routes");
 
 /**
  * @swagger
@@ -47,6 +48,9 @@ router.use("/notifications", notificationRoutes);
 
 // Weather routes
 router.use("/weather", weatherRoutes);
+
+// Farmer routes
+router.use("/farmers", farmerRoutes);
 
 module.exports = router;
 
