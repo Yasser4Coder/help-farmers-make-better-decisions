@@ -9,57 +9,6 @@ const { Op } = require("sequelize");
  */
 class FarmerAuthService {
   /**
-   * Register a new farmer
-   */
-  static async register(farmerData) {
-    const { email, username } = farmerData;
-
-    // Check if farmer with email already exists
-    const existingFarmerByEmail = await Farmer.findOne({
-      where: { email },
-    });
-
-    if (existingFarmerByEmail) {
-      throw new ApiError(
-        StatusCodes.CONFLICT,
-        "Farmer with this email already exists"
-      );
-    }
-
-    // Check if farmer with username already exists
-    const existingFarmerByUsername = await Farmer.findOne({
-      where: { username },
-    });
-
-    if (existingFarmerByUsername) {
-      throw new ApiError(
-        StatusCodes.CONFLICT,
-        "Farmer with this username already exists"
-      );
-    }
-
-    // Create new farmer
-    const farmer = await Farmer.create(farmerData);
-
-    // Generate JWT token
-    const token = generateToken({
-      id: farmer.id,
-      email: farmer.email,
-      username: farmer.username,
-      userType: "farmer",
-    });
-
-    // Remove password from response
-    const farmerResponse = farmer.toJSON();
-    delete farmerResponse.password;
-
-    return {
-      farmer: farmerResponse,
-      token,
-    };
-  }
-
-  /**
    * Login farmer
    */
   static async login(usernameOrEmail, password) {

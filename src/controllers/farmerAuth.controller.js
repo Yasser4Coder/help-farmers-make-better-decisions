@@ -4,21 +4,6 @@ const FarmerAuthService = require("../services/farmerAuth.service");
 const { StatusCodes } = require("../constants");
 
 /**
- * Register a new farmer
- */
-const register = catchAsync(async (req, res) => {
-  const result = await FarmerAuthService.register(req.body);
-
-  const response = new ApiResponse(
-    StatusCodes.CREATED,
-    result,
-    "Farmer registered successfully"
-  );
-
-  res.status(StatusCodes.CREATED).json(response);
-});
-
-/**
  * Login farmer
  */
 const login = catchAsync(async (req, res) => {
@@ -51,7 +36,6 @@ const getProfile = catchAsync(async (req, res) => {
 });
 
 module.exports = {
-  register,
   login,
   getProfile,
 };

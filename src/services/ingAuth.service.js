@@ -9,57 +9,6 @@ const { Op } = require("sequelize");
  */
 class IngAuthService {
   /**
-   * Register a new engineer
-   */
-  static async register(ingData) {
-    const { email, username } = ingData;
-
-    // Check if engineer with email already exists
-    const existingIngByEmail = await Ing.findOne({
-      where: { email },
-    });
-
-    if (existingIngByEmail) {
-      throw new ApiError(
-        StatusCodes.CONFLICT,
-        "Engineer with this email already exists"
-      );
-    }
-
-    // Check if engineer with username already exists
-    const existingIngByUsername = await Ing.findOne({
-      where: { username },
-    });
-
-    if (existingIngByUsername) {
-      throw new ApiError(
-        StatusCodes.CONFLICT,
-        "Engineer with this username already exists"
-      );
-    }
-
-    // Create new engineer
-    const ing = await Ing.create(ingData);
-
-    // Generate JWT token
-    const token = generateToken({
-      id: ing.id,
-      email: ing.email,
-      username: ing.username,
-      userType: "ing",
-    });
-
-    // Remove password from response
-    const ingResponse = ing.toJSON();
-    delete ingResponse.password;
-
-    return {
-      ing: ingResponse,
-      token,
-    };
-  }
-
-  /**
    * Login engineer
    */
   static async login(usernameOrEmail, password) {
