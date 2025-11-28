@@ -65,7 +65,17 @@ const Farmer = sequelize.define(
 
 // Instance method to check password
 Farmer.prototype.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
+  if (!candidatePassword) {
+    return false;
+  }
+  if (!this.password) {
+    return false;
+  }
+  try {
+    return await bcrypt.compare(candidatePassword, this.password);
+  } catch (error) {
+    return false;
+  }
 };
 
 module.exports = Farmer;

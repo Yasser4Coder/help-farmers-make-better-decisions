@@ -9,8 +9,8 @@ const { authLimiter } = require("../middlewares/rateLimit.middleware");
 /**
  * @swagger
  * tags:
- *   name: Farmer Auth
- *   description: Farmer authentication endpoints. Note: Farmers are created directly in the database, not through API registration.
+ *   - name: Farmer Auth
+ *     description: "Farmer authentication endpoints. Note: Farmers are created directly in the database, not through API registration."
  */
 
 /**

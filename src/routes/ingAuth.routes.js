@@ -9,8 +9,8 @@ const { authLimiter } = require("../middlewares/rateLimit.middleware");
 /**
  * @swagger
  * tags:
- *   name: Ing Auth
- *   description: Engineer authentication endpoints. Note: Engineers are created directly in the database, not through API registration.
+ *   - name: Ing Auth
+ *     description: "Engineer authentication endpoints. Note: Engineers are created directly in the database, not through API registration."
  */
 
 /**

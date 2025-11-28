@@ -13,31 +13,69 @@ class FarmerAuthService {
    */
   static async login(usernameOrEmail, password) {
     // Find farmer by username or email
-    // Explicitly select only the columns we need to avoid issues with missing fcm_token column
-    const farmer = await Farmer.findOne({
-      where: {
-        [Op.or]: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
-      },
-      attributes: [
-        "id",
-        "fullName",
-        "email",
-        "username",
-        "phoneNumber",
-        "password",
-        "createdAt",
-        "updatedAt",
-      ],
-    });
+    // Use raw query to avoid issues with missing columns
+    const { sequelize } = require("../config/db");
+    
+    // First, try to find the farmer using a more robust query
+    const results = await sequelize.query(
+      `SELECT id, full_name, email, username, phone_number, password, created_at, updated_at 
+       FROM farmers 
+       WHERE username = :search OR email = :search 
+       LIMIT 1`,
+      {
+        replacements: { search: usernameOrEmail },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
 
-    if (!farmer) {
+    if (!results || results.length === 0) {
       throw new ApiError(
         StatusCodes.UNAUTHORIZED,
         "Invalid username/email or password"
       );
     }
 
-    // Check password
+    const row = results[0];
+
+    // Convert database row to model-like object
+    const farmer = {
+      id: row.id,
+      fullName: row.full_name,
+      email: row.email,
+      username: row.username,
+      phoneNumber: row.phone_number,
+      password: row.password,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+      comparePassword: async function (candidatePassword) {
+        const bcrypt = require("bcryptjs");
+        if (!candidatePassword || !this.password) {
+          return false;
+        }
+        try {
+          return await bcrypt.compare(candidatePassword, this.password);
+        } catch (error) {
+          return false;
+        }
+      },
+    };
+
+    // Check if password exists
+    if (!farmer.password) {
+      throw new ApiError(
+        StatusCodes.UNAUTHORIZED,
+        "Invalid username/email or password"
+      );
+    }
+
+    // Check password using bcrypt
+    if (!password) {
+      throw new ApiError(
+        StatusCodes.UNAUTHORIZED,
+        "Invalid username/email or password"
+      );
+    }
+
     const isPasswordValid = await farmer.comparePassword(password);
 
     if (!isPasswordValid) {
@@ -56,8 +94,15 @@ class FarmerAuthService {
     });
 
     // Remove password from response
-    const farmerResponse = farmer.toJSON();
-    delete farmerResponse.password;
+    const farmerResponse = {
+      id: farmer.id,
+      fullName: farmer.fullName,
+      email: farmer.email,
+      username: farmer.username,
+      phoneNumber: farmer.phoneNumber,
+      createdAt: farmer.createdAt,
+      updatedAt: farmer.updatedAt,
+    };
 
     return {
       farmer: farmerResponse,
@@ -69,25 +114,35 @@ class FarmerAuthService {
    * Get current farmer profile
    */
   static async getProfile(farmerId) {
-    // Explicitly select columns (excluding fcmToken to handle missing column gracefully)
-    const farmer = await Farmer.findByPk(farmerId, {
-      attributes: [
-        "id",
-        "fullName",
-        "email",
-        "username",
-        "phoneNumber",
-        "createdAt",
-        "updatedAt",
-      ],
-    });
+    // Use raw query to avoid column mapping issues
+    const { sequelize } = require("../config/db");
+    
+    const results = await sequelize.query(
+      `SELECT id, full_name, email, username, phone_number, created_at, updated_at 
+       FROM farmers 
+       WHERE id = :farmerId 
+       LIMIT 1`,
+      {
+        replacements: { farmerId },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
 
-    if (!farmer) {
+    if (!results || results.length === 0) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Farmer not found");
     }
 
-    const farmerResponse = farmer.toJSON();
-    delete farmerResponse.password;
+    const row = results[0];
+
+    const farmerResponse = {
+      id: row.id,
+      fullName: row.full_name,
+      email: row.email,
+      username: row.username,
+      phoneNumber: row.phone_number,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
 
     return farmerResponse;
   }
