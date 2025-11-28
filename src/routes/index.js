@@ -3,6 +3,7 @@ const router = express.Router();
 const farmerAuthRoutes = require("./farmerAuth.routes");
 const ingAuthRoutes = require("./ingAuth.routes");
 const notificationRoutes = require("./notification.routes");
+const weatherRoutes = require("./weather.routes");
 
 /**
  * @swagger
@@ -43,6 +44,9 @@ router.use("/auth/ing", ingAuthRoutes);
 
 // Notification routes
 router.use("/notifications", notificationRoutes);
+
+// Weather routes
+router.use("/weather", weatherRoutes);
 
 module.exports = router;
 

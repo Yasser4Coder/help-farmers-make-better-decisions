@@ -10,8 +10,156 @@ const { authLimiter } = require("../middlewares/rateLimit.middleware");
  * @swagger
  * tags:
  *   - name: Farmer Auth
- *     description: "Farmer authentication endpoints. Note: Farmers are created directly in the database, not through API registration."
+ *     description: "Farmer authentication endpoints"
  */
+
+/**
+ * @swagger
+ * /api/auth/farmer/register:
+ *   post:
+ *     summary: Register a new farmer
+ *     tags: [Farmer Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fullName
+ *               - email
+ *               - username
+ *               - password
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *                 description: Farmer's full name
+ *                 example: "John Doe"
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 description: Farmer's email address
+ *                 example: "john.doe@example.com"
+ *               username:
+ *                 type: string
+ *                 description: Unique username (3-30 characters, alphanumeric and underscores only)
+ *                 example: "johndoe"
+ *               password:
+ *                 type: string
+ *                 format: password
+ *                 description: Password (minimum 6 characters)
+ *                 example: "SecurePassword123!"
+ *               phoneNumber:
+ *                 type: string
+ *                 description: Phone number (optional)
+ *                 example: "+213555123456"
+ *               fcmToken:
+ *                 type: string
+ *                 description: Firebase Cloud Messaging token for push notifications (optional)
+ *                 example: "fcm_token_here"
+ *     responses:
+ *       201:
+ *         description: Farmer registered successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 201
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     farmer:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         fullName:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                         username:
+ *                           type: string
+ *                         phoneNumber:
+ *                           type: string
+ *                           nullable: true
+ *                         createdAt:
+ *                           type: string
+ *                           format: date-time
+ *                         updatedAt:
+ *                           type: string
+ *                           format: date-time
+ *                     token:
+ *                       type: string
+ *                 message:
+ *                   type: string
+ *                   example: "Farmer registered successfully"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Validation error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 400
+ *                 message:
+ *                   type: string
+ *                   example: "Validation failed"
+ *                 errors:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       field:
+ *                         type: string
+ *                       message:
+ *                         type: string
+ *       409:
+ *         description: Conflict - Email or username already exists
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 409
+ *                 message:
+ *                   type: string
+ *                   example: "Email is already registered"
+ *       429:
+ *         description: Too many requests
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "Too many requests, please try again later."
+ */
+router.post(
+  "/register",
+  authLimiter,
+  validate(farmerAuthValidation.register),
+  farmerAuthController.register
+);
 
 /**
  * @swagger
