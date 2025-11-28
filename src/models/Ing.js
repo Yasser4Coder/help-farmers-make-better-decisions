@@ -37,6 +37,12 @@ const Ing = sequelize.define(
       type: DataTypes.STRING,
       allowNull: false,
     },
+    fcmToken: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: "fcm_token",
+      comment: "Firebase Cloud Messaging token for push notifications",
+    },
   },
   {
     tableName: "ings",
