@@ -149,19 +149,22 @@ class WeatherService {
             ? (dayData.avgtemp_c * dayData.avghumidity) / 100
             : 0;
 
+        // Prepare weather date for time column
+        const weatherDate = new Date(date);
+        weatherDate.setHours(12, 0, 0, 0); // Set to noon to avoid timezone issues
+
         // Check if record already exists for this date and land
-        // Using raw query to check by date (since we don't have a date field, we'll check by landId and date range)
+        // Using raw query to check by time column (or created_at as fallback)
         const { sequelize } = require("../config/db");
-        const dateStart = new Date(date);
-        dateStart.setHours(0, 0, 0, 0);
-        const dateEnd = new Date(date);
-        dateEnd.setHours(23, 59, 59, 999);
 
         const existingRecords = await sequelize.query(
           `SELECT id FROM weathers 
            WHERE land_id = :landId 
            AND client_id = :clientId 
-           AND DATE(created_at) = DATE(:date)
+           AND (
+             DATE(time) = DATE(:date) 
+             OR (time IS NULL AND DATE(created_at) = DATE(:date))
+           )
            LIMIT 1`,
           {
             replacements: { landId, clientId, date },
@@ -175,8 +178,8 @@ class WeatherService {
             : null;
 
         if (existing) {
-          // Update existing record
           await existing.update({
+            time: weatherDate,
             temperature: dayData.avgtemp_c || null,
             rainfall: dayData.totalprecip_mm || null,
             humidity: dayData.avghumidity || null,
@@ -188,12 +191,13 @@ class WeatherService {
             heatwaves: extremeWeather.heatwaves,
             storms: extremeWeather.storms,
           });
+
           savedRecords.push({ date, action: "updated", id: existing.id });
         } else {
-          // Create new record
           const weatherRecord = await Weather.create({
             landId,
             clientId,
+            time: weatherDate,
             temperature: dayData.avgtemp_c || null,
             rainfall: dayData.totalprecip_mm || null,
             humidity: dayData.avghumidity || null,

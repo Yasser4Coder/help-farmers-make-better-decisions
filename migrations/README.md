@@ -1,65 +1,80 @@
 # Database Migrations
 
-## Add FCM Token Column
+This directory contains SQL migration scripts for the database.
 
-The `fcm_token` column needs to be added to both `farmers` and `ings` tables for the notification system to work. This is required to fix the error: `Unknown column 'fcm_token' in 'SELECT'`
+## Adding Time Column to Weathers Table
 
-### Quick Fix - Simple SQL (Recommended)
+### Migration File
+- `add_time_to_weathers.sql` - Adds a `time` column to the `weathers` table
 
-Run this simple SQL script on your production database:
+### How to Run
 
-```sql
--- Add fcm_token column to farmers table
-ALTER TABLE farmers
-ADD COLUMN fcm_token TEXT NULL COMMENT 'Firebase Cloud Messaging token for push notifications'
-AFTER password;
-
--- Add fcm_token column to ings table  
-ALTER TABLE ings
-ADD COLUMN fcm_token TEXT NULL COMMENT 'Firebase Cloud Messaging token for push notifications'
-AFTER password;
-```
-
-### Option 1: Using MySQL Command Line
-
+#### Option 1: Using MySQL Command Line
 ```bash
-# Connect to your MySQL database and run:
-mysql -h YOUR_DB_HOST -u YOUR_DB_USER -p YOUR_DB_NAME < migrations/add_fcm_token_simple.sql
+mysql -u your_username -p your_database_name < migrations/add_time_to_weathers.sql
 ```
 
-### Option 2: Using Database Management Tool
+#### Option 2: Using MySQL Workbench or phpMyAdmin
+1. Open MySQL Workbench or phpMyAdmin
+2. Connect to your database
+3. Copy the contents of `add_time_to_weathers.sql`
+4. Execute the SQL script
 
-If you're using a database management tool (phpMyAdmin, MySQL Workbench, DBeaver, etc.):
+#### Option 3: Using Node.js Script (Recommended)
+You can create a simple script to run the migration. Create a file `run-migration.js`:
 
-1. Connect to your production database
-2. Open the SQL query editor
-3. Copy and paste the SQL commands above
-4. Execute the query
+```javascript
+require('dotenv').config();
+const mysql = require('mysql2/promise');
+const fs = require('fs');
+const path = require('path');
 
-### Option 3: Using Render.com Database Dashboard
+async function runMigration() {
+  const connection = await mysql.createConnection({
+    host: process.env.DB_HOST,
+    port: process.env.DB_PORT || 3306,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_NAME,
+    multipleStatements: true
+  });
 
-If your database is hosted on Render.com:
+  try {
+    const sql = fs.readFileSync(
+      path.join(__dirname, 'add_time_to_weathers.sql'), 
+      'utf8'
+    );
+    
+    await connection.query(sql);
+    console.log('✅ Migration completed successfully!');
+  } catch (error) {
+    console.error('❌ Migration failed:', error.message);
+  } finally {
+    await connection.end();
+  }
+}
 
-1. Go to your Render.com dashboard
-2. Find your MySQL database service
-3. Click on "Connect" or "Shell"
-4. Connect to the database using the provided credentials
-5. Run the SQL commands above
-
-### Verification
-
-After running the migration, verify the columns were added:
-
-```sql
-DESCRIBE farmers;
-DESCRIBE ings;
+runMigration();
 ```
 
-You should see the `fcm_token` column in both tables.
+Then run:
+```bash
+node run-migration.js
+```
 
-### Troubleshooting
+### What This Migration Does
 
-- **Error: Column already exists**: This means the migration was already run. You can ignore this error.
-- **Error: Table doesn't exist**: Make sure you're connected to the correct database.
-- **Permission denied**: Make sure your database user has ALTER TABLE permissions.
+1. Adds a `time` column (DATETIME) to the `weathers` table
+   - Allows NULL values (for existing records)
+   - Stores the date and time for weather records
+
+2. Creates indexes for better query performance:
+   - Index on `time` column
+   - Composite index on `land_id` and `time` for efficient queries
+
+### Notes
+
+- The migration uses `IF NOT EXISTS` to prevent errors if the column already exists
+- Existing records will have NULL in the `time` column until updated
+- The weather service will automatically populate the `time` column for new records
 

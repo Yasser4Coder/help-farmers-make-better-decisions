@@ -25,6 +25,12 @@ const Weather = sequelize.define('Weather', {
       key: 'id'
     }
   },
+  time: {
+    type: DataTypes.DATE,
+    allowNull: true,
+    field: 'time',
+    comment: 'Date and time for the weather record'
+  },
   temperature: {
     type: DataTypes.DECIMAL(5, 2),
     allowNull: true
