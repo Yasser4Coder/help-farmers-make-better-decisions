@@ -8,22 +8,27 @@ const ApiError = require('../utils/ApiError');
  */
 const validate = (validations) => {
   return async (req, res, next) => {
-    // Run all validations
-    await Promise.all(validations.map(validation => validation.run(req)));
+    try {
+      // Run all validations
+      await Promise.all(validations.map(validation => validation.run(req)));
 
-    const errors = validationResult(req);
-    if (errors.isEmpty()) {
-      return next();
+      const errors = validationResult(req);
+      if (errors.isEmpty()) {
+        return next();
+      }
+
+      const extractedErrors = errors.array().map(err => ({
+        field: err.path || err.param,
+        message: err.msg
+      }));
+
+      const error = new ApiError(400, 'Validation failed', true);
+      error.errors = extractedErrors;
+      return next(error);
+    } catch (err) {
+      // Catch any unexpected errors during validation
+      return next(err);
     }
-
-    const extractedErrors = errors.array().map(err => ({
-      field: err.path || err.param,
-      message: err.msg
-    }));
-
-    const error = new ApiError(400, 'Validation failed', true);
-    error.errors = extractedErrors;
-    throw error;
   };
 };
 

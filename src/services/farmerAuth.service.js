@@ -13,10 +13,21 @@ class FarmerAuthService {
    */
   static async login(usernameOrEmail, password) {
     // Find farmer by username or email
+    // Explicitly select only the columns we need to avoid issues with missing fcm_token column
     const farmer = await Farmer.findOne({
       where: {
         [Op.or]: [{ username: usernameOrEmail }, { email: usernameOrEmail }],
       },
+      attributes: [
+        "id",
+        "fullName",
+        "email",
+        "username",
+        "phoneNumber",
+        "password",
+        "createdAt",
+        "updatedAt",
+      ],
     });
 
     if (!farmer) {
@@ -58,7 +69,18 @@ class FarmerAuthService {
    * Get current farmer profile
    */
   static async getProfile(farmerId) {
-    const farmer = await Farmer.findByPk(farmerId);
+    // Explicitly select columns (excluding fcmToken to handle missing column gracefully)
+    const farmer = await Farmer.findByPk(farmerId, {
+      attributes: [
+        "id",
+        "fullName",
+        "email",
+        "username",
+        "phoneNumber",
+        "createdAt",
+        "updatedAt",
+      ],
+    });
 
     if (!farmer) {
       throw new ApiError(StatusCodes.NOT_FOUND, "Farmer not found");
