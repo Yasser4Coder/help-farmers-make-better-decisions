@@ -82,6 +82,49 @@ class WeatherService {
     }
   }
 
+  /**
+   * Fetch 3-day weather forecast from WeatherAPI
+   */
+  static async fetchWeatherForecast(lat, lng) {
+    const apiKey = process.env.WEATHER_API_KEY;
+    if (!apiKey) {
+      throw new ApiError(
+        StatusCodes.INTERNAL_SERVER_ERROR,
+        "Weather API key is not configured"
+      );
+    }
+
+    const baseUrl = "https://api.weatherapi.com/v1/forecast.json";
+    const location = `${lat},${lng}`;
+
+    try {
+      const response = await axios.get(baseUrl, {
+        params: {
+          key: apiKey,
+          q: location,
+          days: 3,
+        },
+      });
+
+      return response.data;
+    } catch (error) {
+      logger.error(
+        "Weather Forecast API error:",
+        error.response?.data || error.message
+      );
+      if (error.response?.status === 400) {
+        throw new ApiError(
+          StatusCodes.BAD_REQUEST,
+          "Invalid location for weather forecast API"
+        );
+      }
+      throw new ApiError(
+        StatusCodes.SERVICE_UNAVAILABLE,
+        "Weather API service unavailable"
+      );
+    }
+  }
+
   static async saveWeatherData(landId, clientId, lat, lng, startDate, endDate) {
     if (!landId || !clientId) {
       throw new ApiError(
