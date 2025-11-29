@@ -169,5 +169,54 @@ router.get(
   cronController.getCronStatus
 );
 
+/**
+ * @swagger
+ * /api/cron/weather/trigger:
+ *   post:
+ *     summary: Manually trigger alert generation (for testing)
+ *     description: Immediately generates alerts for all farmers based on current weather forecast and soil data. Useful for testing without waiting for the scheduled cron job.
+ *     tags: [Cron Jobs]
+ *     responses:
+ *       200:
+ *         description: Alert generation completed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     alertsGenerated:
+ *                       type: integer
+ *                       description: Number of alerts generated
+ *                       example: 5
+ *                     errorCount:
+ *                       type: integer
+ *                       description: Number of errors encountered
+ *                       example: 0
+ *                     farmersProcessed:
+ *                       type: integer
+ *                       description: Number of farmer-land combinations processed
+ *                       example: 3
+ *                     message:
+ *                       type: string
+ *                       example: "Generated 5 alerts for 3 farmer-land combinations"
+ *                 message:
+ *                   type: string
+ *                   example: "Alert generation completed"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ */
+router.post(
+  "/weather/trigger",
+  apiLimiter,
+  cronController.triggerAlertGeneration
+);
+
 module.exports = router;
 

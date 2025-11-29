@@ -48,9 +48,24 @@ const getCronStatus = catchAsync(async (req, res) => {
   res.status(StatusCodes.OK).json(response);
 });
 
+/**
+ * Manually trigger alert generation (for testing)
+ */
+const triggerAlertGeneration = catchAsync(async (req, res) => {
+  const result = await CronService.generateAlertsForAllFarmers();
+
+  const response = new ApiResponse(
+    StatusCodes.OK,
+    result,
+    "Alert generation completed"
+  );
+
+  res.status(StatusCodes.OK).json(response);
+});
+
 module.exports = {
   startWeatherCron,
   stopWeatherCron,
   getCronStatus,
+  triggerAlertGeneration,
 };
-
