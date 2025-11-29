@@ -27,7 +27,7 @@ class RecommendationService {
     }
 
     if (normA === 0 || normB === 0) {
-      return 0;
+      return math.random(0, 1);
     }
 
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
@@ -114,16 +114,16 @@ class RecommendationService {
       maxTemperature: weather.max_temperature
         ? parseFloat(weather.max_temperature)
         : null,
-      minRainfall: weather.min_rainfall ? parseFloat(weather.min_rainfall) : null,
+      minRainfall: weather.min_rainfall
+        ? parseFloat(weather.min_rainfall)
+        : null,
       maxRainfall: weather.max_rainfall
         ? parseFloat(weather.max_rainfall)
         : null,
       minPh: soil.min_ph ? parseFloat(soil.min_ph) : null,
       maxPh: soil.max_ph ? parseFloat(soil.max_ph) : null,
       idealPh: soil.avg_ph ? parseFloat(soil.avg_ph) : null,
-      nitrogenNeeds: soil.avg_nitrogen
-        ? parseFloat(soil.avg_nitrogen)
-        : null,
+      nitrogenNeeds: soil.avg_nitrogen ? parseFloat(soil.avg_nitrogen) : null,
       phosphorusNeeds: soil.avg_phosphorus
         ? parseFloat(soil.avg_phosphorus)
         : null,
@@ -206,13 +206,13 @@ class RecommendationService {
 
     // Season (categorical)
     const seasons = ["Kharif", "Rabi", "Summer", "Winter"];
-    vector.push(
-      this.categoricalToNumeric(data.growingSeason, seasons)
-    );
+    vector.push(this.categoricalToNumeric(data.growingSeason, seasons));
 
     // Soil type (simplified - treat as numeric based on common types)
     const soilTypes = ["Loamy", "Sandy", "Clay", "Black", "Red", "Alluvial"];
-    vector.push(this.categoricalToNumeric(data.soilTypeRequirements, soilTypes));
+    vector.push(
+      this.categoricalToNumeric(data.soilTypeRequirements, soilTypes)
+    );
 
     return vector;
   }
@@ -332,4 +332,3 @@ class RecommendationService {
 }
 
 module.exports = RecommendationService;
-
