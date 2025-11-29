@@ -23,6 +23,11 @@ const grafanaValidation = {
       .withMessage("Plot type must be a string")
       .isIn(["time series", "histogram"])
       .withMessage("Plot type must be either 'time series' or 'histogram'"),
+    body("tables")
+      .notEmpty()
+      .withMessage("Tables is required")
+      .isString()
+      .withMessage("Tables must be a string"),
     body("sectionId")
       .optional()
       .isString()

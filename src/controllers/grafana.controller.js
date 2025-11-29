@@ -7,7 +7,7 @@ const { StatusCodes } = require("../constants");
  * Generate Grafana graph URL
  */
 const generateGraphUrl = catchAsync(async (req, res) => {
-  const { farmerId, landId, column, plotType, sectionId } = req.body;
+  const { farmerId, landId, column, plotType, tables, sectionId } = req.body;
 
   const farmerIdNum = parseInt(farmerId, 10);
   const landIdNum = parseInt(landId, 10);
@@ -20,11 +20,11 @@ const generateGraphUrl = catchAsync(async (req, res) => {
     });
   }
 
-  if (!column || !plotType) {
+  if (!column || !plotType || !tables) {
     return res.status(StatusCodes.BAD_REQUEST).json({
       success: false,
       statusCode: StatusCodes.BAD_REQUEST,
-      message: "Column and plotType are required",
+      message: "Column, plotType, and tables are required",
     });
   }
 
@@ -33,6 +33,7 @@ const generateGraphUrl = catchAsync(async (req, res) => {
     landIdNum,
     column,
     plotType,
+    tables,
     sectionId || null
   );
 

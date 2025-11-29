@@ -162,71 +162,81 @@ router.get(
  *                 data:
  *                   type: object
  *                   properties:
- *                     id:
- *                       type: integer
- *                     farmerId:
- *                       type: integer
- *                     landId:
- *                       type: integer
- *                     section:
- *                       type: string
- *                     soilMoisture:
- *                       type: number
- *                       description: Soil Moisture (%)
- *                       nullable: true
- *                     soilTemperature:
- *                       type: number
- *                       description: Soil Temperature
- *                       nullable: true
- *                     ph:
- *                       type: number
- *                       description: pH level
- *                       nullable: true
- *                     electricalConductivity:
- *                       type: number
- *                       description: Electrical Conductivity
- *                       nullable: true
- *                     organicMatter:
- *                       type: number
- *                       description: Organic Matter
- *                       nullable: true
- *                     nitrite:
- *                       type: number
- *                       description: Nitrite level
- *                       nullable: true
+ *                     parameters:
+ *                       type: array
+ *                       description: Array of 8 soil parameters formatted for dashboard display
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           name:
+ *                             type: string
+ *                             example: "Moisture (%)"
+ *                           value:
+ *                             type: string
+ *                             description: Formatted value (may be range or single value with unit)
+ *                             example: "15% to 18%"
+ *                           icon:
+ *                             type: string
+ *                             example: "moisture"
+ *                           color:
+ *                             type: string
+ *                             example: "green"
  *                     soilHealthScore:
- *                       type: integer
- *                       description: Calculated soil health score (0-100)
- *                       example: 75
- *                     overallStatus:
- *                       type: string
- *                       description: Overall soil health status
- *                       enum: [Excellent, Good, Medium, Poor, Very Poor]
- *                       example: "Good"
- *                     nitrogen:
- *                       type: number
- *                       nullable: true
- *                     phosphorus:
- *                       type: number
- *                       nullable: true
- *                     potassium:
- *                       type: number
- *                       nullable: true
- *                     soilType:
- *                       type: string
- *                       nullable: true
- *                     latitude:
- *                       type: number
- *                       nullable: true
- *                     longitude:
- *                       type: number
- *                       nullable: true
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                     updatedAt:
- *                       type: string
- *                       format: date-time
+ *                       type: object
+ *                       properties:
+ *                         score:
+ *                           type: integer
+ *                           description: Soil health score (0-100)
+ *                           example: 66
+ *                         percentage:
+ *                           type: string
+ *                           description: Score as percentage string
+ *                           example: "66%"
+ *                         overallStatus:
+ *                           type: string
+ *                           description: Overall status in lowercase
+ *                           enum: [excellent, good, medium, poor, very poor]
+ *                           example: "medium"
+ *                     rawData:
+ *                       type: object
+ *                       description: Raw soil data for backward compatibility
+ *                       properties:
+ *                         id:
+ *                           type: integer
+ *                         farmerId:
+ *                           type: integer
+ *                         landId:
+ *                           type: integer
+ *                         section:
+ *                           type: string
+ *                         soilMoisture:
+ *                           type: number
+ *                           nullable: true
+ *                         soilTemperature:
+ *                           type: number
+ *                           nullable: true
+ *                         ph:
+ *                           type: number
+ *                           nullable: true
+ *                         electricalConductivity:
+ *                           type: number
+ *                           nullable: true
+ *                         organicMatter:
+ *                           type: number
+ *                           nullable: true
+ *                         nitrogen:
+ *                           type: number
+ *                           nullable: true
+ *                         phosphorus:
+ *                           type: number
+ *                           nullable: true
+ *                         potassium:
+ *                           type: number
+ *                           nullable: true
+ *                         soilHealthScore:
+ *                           type: integer
+ *                         overallStatus:
+ *                           type: string
  *                 message:
  *                   type: string
  *                   example: "Soil data retrieved successfully"

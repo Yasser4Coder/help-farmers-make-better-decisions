@@ -51,6 +51,10 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  *                 enum: [time series, histogram]
  *                 description: Type of plot to display
  *                 example: "histogram"
+ *               tables:
+ *                 type: string
+ *                 description: Table name(s) - can be newline-separated for multiple tables
+ *                 example: "weathers"
  *               sectionId:
  *                 type: string
  *                 nullable: true
@@ -73,11 +77,11 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  *                     url:
  *                       type: string
  *                       description: Full Grafana graph URL
- *                       example: "http://localhost:3000/d-solo/admqj9h/test?orgId=1&from=1757924704203&to=1759338241419&timezone=browser&var-client_id=1&var-land_id=1&var-section_id=&var-column=sunlight_hours_per_day&var-table=weathers&theme=light&panelId=panel-3&__feature_dashboardSceneSolo=true"
+ *                       example: "http://localhost:3000/d/admqj9h/test?orgId=1&from=2025-09-15T08:25:04.203Z&to=2025-10-01T17:04:01.419Z&timezone=browser&var-client_id=1&var-land_id=2&var-section_id=&var-columns=&var-tables=weathers&viewPanel=panel-2&editPanel=2"
  *                     iframeUrl:
  *                       type: string
  *                       description: Same as url, for iframe embedding
- *                       example: "http://localhost:3000/d-solo/admqj9h/test?orgId=1&from=1757924704203&to=1759338241419&timezone=browser&var-client_id=1&var-land_id=1&var-section_id=&var-column=sunlight_hours_per_day&var-table=weathers&theme=light&panelId=panel-3&__feature_dashboardSceneSolo=true"
+ *                       example: "http://localhost:3000/d/admqj9h/test?orgId=1&from=2025-09-15T08:25:04.203Z&to=2025-10-01T17:04:01.419Z&timezone=browser&var-client_id=1&var-land_id=2&var-section_id=&var-columns=&var-tables=weathers&viewPanel=panel-2&editPanel=2"
  *                     farmerId:
  *                       type: integer
  *                       example: 1
@@ -94,22 +98,24 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  *                       type: string
  *                       description: Panel ID determined from plot type
  *                       example: "panel-3"
- *                     table:
+ *                     tables:
  *                       type: string
- *                       description: Table name determined from column
+ *                       description: Tables provided in request
  *                       example: "weathers"
  *                     sectionId:
  *                       type: string
  *                       nullable: true
  *                       example: "A1"
  *                     from:
- *                       type: integer
- *                       description: Start timestamp (30 days ago)
- *                       example: 1757924704203
+ *                       type: string
+ *                       format: date-time
+ *                       description: Start date (30 days ago) in ISO format
+ *                       example: "2025-09-15T08:25:04.203Z"
  *                     to:
- *                       type: integer
- *                       description: End timestamp (now)
- *                       example: 1759338241419
+ *                       type: string
+ *                       format: date-time
+ *                       description: End date (now) in ISO format
+ *                       example: "2025-10-01T17:04:01.419Z"
  *                 message:
  *                   type: string
  *                   example: "Grafana graph URL generated successfully"

@@ -132,30 +132,34 @@ class SoilService {
       );
     }
 
-    // Get soil data for the specific section
+    // Get soil data for the specific section and latest weather temperature
     const results = await sequelize.query(
       `SELECT 
-         id,
-         client_id,
-         land_id,
-         section,
-         soil_moisture,
-         ph,
-         electrical_conductivity,
-         organic_carbon,
-         nitrogen,
-         phosphorus,
-         potassium,
-         soil_type,
-         lat,
-         lng,
-         created_at,
-         updated_at
-       FROM section_soils 
-       WHERE client_id = :farmerId 
-       AND land_id = :landId 
-       AND section = :section
-       ORDER BY created_at DESC
+         ss.id,
+         ss.client_id,
+         ss.land_id,
+         ss.section,
+         ss.soil_moisture,
+         ss.ph,
+         ss.electrical_conductivity,
+         ss.organic_carbon,
+         ss.nitrogen,
+         ss.phosphorus,
+         ss.potassium,
+         ss.soil_type,
+         ss.lat,
+         ss.lng,
+         ss.created_at,
+         ss.updated_at,
+         (SELECT temperature FROM weathers w 
+          WHERE w.land_id = ss.land_id 
+          ORDER BY w.time DESC 
+          LIMIT 1) as temperature
+       FROM section_soils ss
+       WHERE ss.client_id = :farmerId 
+       AND ss.land_id = :landId 
+       AND ss.section = :section
+       ORDER BY ss.created_at DESC
        LIMIT 1`,
       {
         replacements: { farmerId, landId, section },
@@ -179,7 +183,7 @@ class SoilService {
       landId: row.land_id,
       section: row.section,
       soilMoisture: row.soil_moisture ? parseFloat(row.soil_moisture) : null,
-      soilTemperature: null, // Not in database yet
+      soilTemperature: row.temperature ? parseFloat(row.temperature) : null, // Get from weather data
       ph: row.ph ? parseFloat(row.ph) : null,
       electricalConductivity: row.electrical_conductivity
         ? parseFloat(row.electrical_conductivity)
@@ -202,10 +206,107 @@ class SoilService {
     const healthScore = this.calculateSoilHealthScore(soilData);
     const overallStatus = this.getOverallStatus(healthScore);
 
+    // Format values to match dashboard display
+    const formatMoisture = (moisture) => {
+      if (moisture === null || moisture === undefined) return null;
+      // For display, show as range or single value
+      const val = parseFloat(moisture);
+      const lower = Math.max(0, Math.round(val - 3));
+      const upper = Math.round(val + 3);
+      return `${lower}% to ${upper}%`;
+    };
+
+    const formatTemperature = (temp) => {
+      if (temp === null || temp === undefined) {
+        // Default range if no temperature available
+        return "15-25 °C";
+      }
+      // For display, show as range
+      const val = parseFloat(temp);
+      const lower = Math.max(0, Math.round(val - 5));
+      const upper = Math.round(val + 5);
+      return `${lower}-${upper} °C`;
+    };
+
+    const formatEC = (ec) => {
+      if (ec === null || ec === undefined) return null;
+      // For display, show as range
+      const val = parseFloat(ec);
+      const lower = (val - 0.5).toFixed(1);
+      const upper = (val + 0.5).toFixed(1);
+      return `${lower} – ${upper} dS/m`;
+    };
+
+    const formatWithUnit = (value, unit) => {
+      if (value === null || value === undefined) return null;
+      return `${value} ${unit}`;
+    };
+
+    // Build parameters array matching dashboard format
+    const parameters = [
+      {
+        name: "Moisture (%)",
+        value: formatMoisture(soilData.soilMoisture) || "N/A",
+        icon: "moisture",
+        color: "green",
+      },
+      {
+        name: "Temperature",
+        value: formatTemperature(soilData.soilTemperature) || "N/A",
+        icon: "temperature",
+        color: "purple",
+      },
+      {
+        name: "Ph level",
+        value: soilData.ph !== null ? soilData.ph.toFixed(1) : "N/A",
+        icon: "ph",
+        color: "pink",
+      },
+      {
+        name: "Organic carbon",
+        value: soilData.organicMatter !== null ? soilData.organicMatter.toFixed(1) : "N/A",
+        icon: "organic",
+        color: "pink",
+      },
+      {
+        name: "Electrical Conductivity",
+        value: formatEC(soilData.electricalConductivity) || "N/A",
+        icon: "conductivity",
+        color: "blue",
+      },
+      {
+        name: "Potassium (K)",
+        value: formatWithUnit(soilData.potassium, "mg/kg") || "N/A",
+        icon: "potassium",
+        color: "brown",
+      },
+      {
+        name: "Nitrogen Level",
+        value: formatWithUnit(soilData.nitrogen, "mg/kg") || "N/A",
+        icon: "nitrogen",
+        color: "orange",
+      },
+      {
+        name: "Phosphorus (P)",
+        value: formatWithUnit(soilData.phosphorus, "mg/kg") || "N/A",
+        icon: "phosphorus",
+        color: "orange",
+      },
+    ];
+
     return {
-      ...soilData,
-      soilHealthScore: healthScore,
-      overallStatus: overallStatus,
+      parameters: parameters,
+      soilHealthScore: {
+        score: healthScore,
+        percentage: `${healthScore}%`,
+        overallStatus: overallStatus.toLowerCase(), // lowercase to match image
+      },
+      // Also include raw data for backward compatibility
+      rawData: {
+        ...soilData,
+        soilHealthScore: healthScore,
+        overallStatus: overallStatus,
+      },
     };
   }
 

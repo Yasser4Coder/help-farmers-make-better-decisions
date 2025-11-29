@@ -75,7 +75,14 @@ class GrafanaService {
   /**
    * Generate Grafana graph URL
    */
-  static async generateGraphUrl(farmerId, landId, column, plotType, sectionId = null) {
+  static async generateGraphUrl(
+    farmerId,
+    landId,
+    column,
+    plotType,
+    tables,
+    sectionId = null
+  ) {
     // Verify farmer exists
     const farmer = await Farmer.findByPk(farmerId);
     if (!farmer) {
@@ -99,13 +106,17 @@ class GrafanaService {
 
     // Get panel ID from plot type
     const panelId = this.getPanelIdFromPlotType(plotType);
+    
+    // Extract panel number from panelId (e.g., "panel-2" -> "2")
+    const panelNumber = panelId.replace("panel-", "");
 
-    // Determine table name
-    const table = this.getTableFromColumn(column);
+    // Generate ISO date strings (from: 30 days ago, to: now)
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now);
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    // Generate timestamps (from: 30 days ago, to: now)
-    const now = Date.now();
-    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+    const fromISO = thirtyDaysAgo.toISOString();
+    const toISO = now.toISOString();
 
     // Base Grafana URL (should be configurable via env)
     const grafanaBaseUrl =
@@ -113,29 +124,27 @@ class GrafanaService {
     const dashboardUid = process.env.GRAFANA_DASHBOARD_UID || "admqj9h";
     const orgId = process.env.GRAFANA_ORG_ID || "1";
 
+    // Format tables - if it's a string with newlines, use as is; otherwise treat as single table
+    // URL encode the tables string (newlines become %0A)
+    const tablesEncoded = encodeURIComponent(tables);
+
     // Build URL with query parameters (matching exact Grafana format)
     const params = [
       `orgId=${orgId}`,
-      `from=${thirtyDaysAgo}`,
-      `to=${now}`,
+      `from=${encodeURIComponent(fromISO)}`,
+      `to=${encodeURIComponent(toISO)}`,
       `timezone=browser`,
-      `var-query0=`,
       `var-client_id=${farmerId}`,
-      `var-query0-2=`,
       `var-land_id=${landId}`,
-      `var-query0-3=`,
       `var-section_id=${sectionId || ""}`,
-      `var-query0-4=`,
-      `var-column=${column}`,
-      `var-query0-5=`,
-      `var-table=${table}`,
-      `theme=light`,
-      `panelId=${panelId}`,
-      `__feature.dashboardSceneSolo=true`,
+      `var-columns=`,
+      `var-tables=${tablesEncoded}`,
+      `viewPanel=${panelId}`,
+      `editPanel=${panelNumber}`,
     ];
 
     const queryString = params.join("&");
-    const graphUrl = `${grafanaBaseUrl}/d-solo/${dashboardUid}/test?${queryString}`;
+    const graphUrl = `${grafanaBaseUrl}/d/${dashboardUid}/test?${queryString}`;
 
     return {
       url: graphUrl,
@@ -144,11 +153,11 @@ class GrafanaService {
       landId: landId,
       column: column,
       plotType: plotType,
+      tables: tables,
       panelId: panelId,
-      table: table,
       sectionId: sectionId,
-      from: thirtyDaysAgo,
-      to: now,
+      from: fromISO,
+      to: toISO,
     };
   }
 }
