@@ -4,7 +4,6 @@ const farmerAuthController = require("../controllers/farmerAuth.controller");
 const farmerAuthValidation = require("../validations/farmerAuth.validation");
 const validate = require("../middlewares/validate.middleware");
 const { authenticateFarmer } = require("../middlewares/auth.middleware");
-const { authLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -156,7 +155,6 @@ const { authLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.post(
   "/register",
-  authLimiter,
   validate(farmerAuthValidation.register),
   farmerAuthController.register
 );
@@ -266,7 +264,6 @@ router.post(
  */
 router.post(
   "/login",
-  authLimiter,
   validate(farmerAuthValidation.login),
   farmerAuthController.login
 );

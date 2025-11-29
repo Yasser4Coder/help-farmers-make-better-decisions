@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const overviewController = require("../controllers/overview.controller");
 const { authenticateIng } = require("../middlewares/auth.middleware");
-const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -99,7 +98,6 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.get(
   "/",
-  apiLimiter,
   authenticateIng,
   overviewController.getOverview
 );

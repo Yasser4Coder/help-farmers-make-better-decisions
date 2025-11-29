@@ -5,7 +5,6 @@ const farmerConnectionController = require("../controllers/farmerConnection.cont
 const farmerConnectionValidation = require("../validations/farmerConnection.validation");
 const validate = require("../middlewares/validate.middleware");
 const { authenticateIng } = require("../middlewares/auth.middleware");
-const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -85,7 +84,7 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  *                   type: string
  *                   example: "Access token is missing or invalid"
  */
-router.get("/", apiLimiter, authenticateIng, farmerController.getAllFarmers);
+router.get("/", authenticateIng, farmerController.getAllFarmers);
 
 /**
  * @swagger
@@ -158,7 +157,7 @@ router.get("/", apiLimiter, authenticateIng, farmerController.getAllFarmers);
  *                   type: string
  *                   example: "Access token is missing or invalid"
  */
-router.get("/my-farmers", apiLimiter, authenticateIng, farmerController.getFarmersByEngineer);
+router.get("/my-farmers", authenticateIng, farmerController.getFarmersByEngineer);
 
 /**
  * @swagger
@@ -339,11 +338,10 @@ router.get("/my-farmers", apiLimiter, authenticateIng, farmerController.getFarme
  */
 router.get(
   "/:farmerId/lands",
-  apiLimiter,
   farmerController.getLandIdsByFarmer
 );
 
-router.get("/:id", apiLimiter, authenticateIng, farmerController.getFarmerById);
+router.get("/:id", authenticateIng, farmerController.getFarmerById);
 
 /**
  * @swagger
@@ -495,7 +493,6 @@ router.get("/:id", apiLimiter, authenticateIng, farmerController.getFarmerById);
  */
 router.post(
   "/connect",
-  apiLimiter,
   authenticateIng,
   validate(farmerConnectionValidation.connect),
   farmerConnectionController.connectToFarmer
@@ -592,7 +589,6 @@ router.post(
  */
 router.delete(
   "/disconnect/:farmerId",
-  apiLimiter,
   authenticateIng,
   farmerConnectionController.disconnectFromFarmer
 );

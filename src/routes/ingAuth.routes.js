@@ -4,7 +4,6 @@ const ingAuthController = require("../controllers/ingAuth.controller");
 const ingAuthValidation = require("../validations/ingAuth.validation");
 const validate = require("../middlewares/validate.middleware");
 const { authenticateIng } = require("../middlewares/auth.middleware");
-const { authLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -118,7 +117,6 @@ const { authLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.post(
   "/login",
-  authLimiter,
   validate(ingAuthValidation.login),
   ingAuthController.login
 );

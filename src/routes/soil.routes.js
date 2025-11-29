@@ -2,7 +2,6 @@ const express = require("express");
 const router = express.Router();
 const soilController = require("../controllers/soil.controller");
 const { authenticateIng } = require("../middlewares/auth.middleware");
-const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -112,7 +111,6 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.get(
   "/farmer/:farmerId/status",
-  apiLimiter,
   authenticateIng,
   soilController.getSoilStatusByFarmer
 );
@@ -178,7 +176,6 @@ router.get(
  */
 router.get(
   "/:farmerId/:landId/sections",
-  apiLimiter,
   authenticateIng,
   soilController.getSoilSections
 );
@@ -360,7 +357,6 @@ router.get(
  */
 router.get(
   "/:farmerId/:landId/:section",
-  apiLimiter,
   authenticateIng,
   soilController.getSoilData
 );

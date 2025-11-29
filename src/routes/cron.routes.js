@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const cronController = require("../controllers/cron.controller");
-const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -66,7 +65,6 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.post(
   "/weather/start",
-  apiLimiter,
   cronController.startWeatherCron
 );
 
@@ -119,7 +117,6 @@ router.post(
  */
 router.post(
   "/weather/stop",
-  apiLimiter,
   cronController.stopWeatherCron
 );
 
@@ -165,7 +162,6 @@ router.post(
  */
 router.get(
   "/weather/status",
-  apiLimiter,
   cronController.getCronStatus
 );
 
@@ -214,7 +210,6 @@ router.get(
  */
 router.post(
   "/weather/trigger",
-  apiLimiter,
   cronController.triggerAlertGeneration
 );
 

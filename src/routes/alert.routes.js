@@ -4,7 +4,6 @@ const alertController = require("../controllers/alert.controller");
 const alertValidation = require("../validations/alert.validation");
 const validate = require("../middlewares/validate.middleware");
 const { authenticateFarmer, authenticateIng } = require("../middlewares/auth.middleware");
-const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -141,7 +140,6 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.get(
   "/",
-  apiLimiter,
   authenticateFarmer,
   validate(alertValidation.getMyAlerts),
   alertController.getMyAlerts
@@ -234,7 +232,6 @@ router.get(
  */
 router.get(
   "/farmer/:farmerId",
-  apiLimiter,
   authenticateIng,
   validate(alertValidation.getAlertsByFarmerId),
   alertController.getAlertsByFarmerId
@@ -343,7 +340,6 @@ router.get(
  */
 router.get(
   "/:alertId",
-  apiLimiter,
   authenticateFarmer,
   validate(alertValidation.getAlertById),
   alertController.getAlertById

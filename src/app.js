@@ -10,7 +10,6 @@ const {
   errorConverter,
   errorHandler,
 } = require("./middlewares/error.middleware");
-const { apiLimiter } = require("./middlewares/rateLimit.middleware");
 
 // Load environment variables
 require("dotenv").config();
@@ -81,7 +80,7 @@ app.use(
 );
 
 // API routes
-app.use("/api", apiLimiter, routes);
+app.use("/api", routes);
 
 // Root endpoint
 app.get("/", (req, res) => {

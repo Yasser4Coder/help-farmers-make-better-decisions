@@ -3,7 +3,6 @@ const router = express.Router();
 const recommendationController = require("../controllers/recommendation.controller");
 const recommendationValidation = require("../validations/recommendation.validation");
 const validate = require("../middlewares/validate.middleware");
-const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -190,7 +189,6 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.get(
   "/:farmerId/:landId",
-  apiLimiter,
   validate(recommendationValidation.getCropRecommendations),
   recommendationController.getCropRecommendations
 );

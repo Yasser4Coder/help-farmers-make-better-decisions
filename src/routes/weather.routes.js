@@ -4,7 +4,6 @@ const weatherController = require("../controllers/weather.controller");
 const weatherValidation = require("../validations/weather.validation");
 const validate = require("../middlewares/validate.middleware");
 const { authenticateIng } = require("../middlewares/auth.middleware");
-const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -167,7 +166,6 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.post(
   "/fetch-and-save",
-  apiLimiter,
   validate(weatherValidation.fetchAndSave),
   weatherController.fetchAndSaveWeather
 );
@@ -288,7 +286,6 @@ router.post(
  */
 router.get(
   "/forecast/:landId",
-  apiLimiter,
   validate(weatherValidation.getForecast),
   weatherController.getWeatherForecast
 );
@@ -419,7 +416,6 @@ router.get(
  */
 router.get(
   "/today/:landId",
-  apiLimiter,
   validate(weatherValidation.getForecast),
   weatherController.getTodayWeather
 );
@@ -595,7 +591,6 @@ router.get(
  */
 router.get(
   "/farmer/:farmerId/status",
-  apiLimiter,
   authenticateIng,
   weatherController.getWeatherStatusByFarmer
 );

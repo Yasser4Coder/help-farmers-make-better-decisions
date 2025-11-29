@@ -4,7 +4,6 @@ const grafanaController = require("../controllers/grafana.controller");
 const grafanaValidation = require("../validations/grafana.validation");
 const validate = require("../middlewares/validate.middleware");
 const { authenticateIng } = require("../middlewares/auth.middleware");
-const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -171,7 +170,6 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.post(
   "/graph-url",
-  apiLimiter,
   authenticateIng,
   validate(grafanaValidation.generateGraphUrl),
   grafanaController.generateGraphUrl

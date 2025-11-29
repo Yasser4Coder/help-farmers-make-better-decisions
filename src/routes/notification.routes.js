@@ -4,7 +4,6 @@ const notificationController = require("../controllers/notification.controller")
 const notificationValidation = require("../validations/notification.validation");
 const validate = require("../middlewares/validate.middleware");
 const { authenticateFarmer, authenticateIng } = require("../middlewares/auth.middleware");
-const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
@@ -121,7 +120,6 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  */
 router.post(
   "/device",
-  apiLimiter,
   validate(notificationValidation.sendToDevice),
   notificationController.sendToDevice
 );
@@ -227,7 +225,6 @@ router.post(
  */
 router.post(
   "/multiple",
-  apiLimiter,
   validate(notificationValidation.sendToMultipleDevices),
   notificationController.sendToMultipleDevices
 );
@@ -344,7 +341,6 @@ router.post(
  */
 router.post(
   "/farmers/all",
-  apiLimiter,
   authenticateIng, // Only engineers can send to all farmers
   validate(notificationValidation.sendToAll),
   notificationController.sendToAllFarmers
@@ -461,7 +457,6 @@ router.post(
  */
 router.post(
   "/engineers/all",
-  apiLimiter,
   authenticateIng, // Only engineers can send to all engineers
   validate(notificationValidation.sendToAll),
   notificationController.sendToAllEngineers
@@ -594,7 +589,6 @@ router.post(
  */
 router.post(
   "/farmer/:farmerId",
-  apiLimiter,
   authenticateIng, // Only engineers can send to specific farmers
   validate(notificationValidation.sendToUser),
   notificationController.sendToFarmer
@@ -727,7 +721,6 @@ router.post(
  */
 router.post(
   "/engineer/:engineerId",
-  apiLimiter,
   authenticateIng,
   validate(notificationValidation.sendToUser),
   notificationController.sendToEngineer
@@ -826,7 +819,6 @@ router.post(
  */
 router.put(
   "/farmer/token",
-  apiLimiter,
   authenticateFarmer,
   validate(notificationValidation.updateToken),
   notificationController.updateFarmerToken
@@ -925,7 +917,6 @@ router.put(
  */
 router.put(
   "/engineer/token",
-  apiLimiter,
   authenticateIng,
   validate(notificationValidation.updateToken),
   notificationController.updateEngineerToken
