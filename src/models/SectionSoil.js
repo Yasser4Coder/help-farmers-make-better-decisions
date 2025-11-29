@@ -87,6 +87,11 @@ const SectionSoil = sequelize.define(
       type: DataTypes.STRING,
       allowNull: true,
     },
+    time: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: "Date and time for the soil data record",
+    },
   },
   {
     tableName: "section_soils",
