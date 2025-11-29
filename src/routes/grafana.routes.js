@@ -77,11 +77,11 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  *                     url:
  *                       type: string
  *                       description: Full Grafana graph URL
- *                       example: "http://localhost:3000/d/admqj9h/test?orgId=1&from=2025-09-15T08:25:04.203Z&to=2025-10-01T17:04:01.419Z&timezone=browser&var-client_id=1&var-land_id=2&var-section_id=&var-columns=&var-tables=weathers&viewPanel=panel-2&editPanel=2"
+ *                       example: "http://localhost:3000/d-solo/admqj9h/test?orgId=1&from=1757924704203&to=1759338241419&timezone=browser&var-client_id=1&var-land_id=2&var-section_id=&var-columns=temperature&var-tables=weathers&panelId=2&__feature.dashboardSceneSolo=true"
  *                     iframeUrl:
  *                       type: string
  *                       description: Same as url, for iframe embedding
- *                       example: "http://localhost:3000/d/admqj9h/test?orgId=1&from=2025-09-15T08:25:04.203Z&to=2025-10-01T17:04:01.419Z&timezone=browser&var-client_id=1&var-land_id=2&var-section_id=&var-columns=&var-tables=weathers&viewPanel=panel-2&editPanel=2"
+ *                       example: "http://localhost:3000/d-solo/admqj9h/test?orgId=1&from=1757924704203&to=1759338241419&timezone=browser&var-client_id=1&var-land_id=2&var-section_id=&var-columns=temperature&var-tables=weathers&panelId=2&__feature.dashboardSceneSolo=true"
  *                     farmerId:
  *                       type: integer
  *                       example: 1
@@ -107,15 +107,13 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  *                       nullable: true
  *                       example: "A1"
  *                     from:
- *                       type: string
- *                       format: date-time
- *                       description: Start date (30 days ago) in ISO format
- *                       example: "2025-09-15T08:25:04.203Z"
+ *                       type: integer
+ *                       description: Start date timestamp in milliseconds (30 days ago)
+ *                       example: 1757924704203
  *                     to:
- *                       type: string
- *                       format: date-time
- *                       description: End date (now) in ISO format
- *                       example: "2025-10-01T17:04:01.419Z"
+ *                       type: integer
+ *                       description: End date timestamp in milliseconds (now)
+ *                       example: 1759338241419
  *                 message:
  *                   type: string
  *                   example: "Grafana graph URL generated successfully"

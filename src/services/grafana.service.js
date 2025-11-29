@@ -110,13 +110,13 @@ class GrafanaService {
     // Extract panel number from panelId (e.g., "panel-2" -> "2")
     const panelNumber = panelId.replace("panel-", "");
 
-    // Generate ISO date strings (from: 30 days ago, to: now)
+    // Generate timestamps in milliseconds (from: 30 days ago, to: now)
     const now = new Date();
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const fromISO = thirtyDaysAgo.toISOString();
-    const toISO = now.toISOString();
+    const fromTimestamp = thirtyDaysAgo.getTime();
+    const toTimestamp = now.getTime();
 
     // Base Grafana URL (should be configurable via env)
     const grafanaBaseUrl =
@@ -128,23 +128,23 @@ class GrafanaService {
     // URL encode the tables string (newlines become %0A)
     const tablesEncoded = encodeURIComponent(tables);
 
-    // Build URL with query parameters (matching exact Grafana format)
+    // Build URL with query parameters (matching exact Grafana format for d-solo)
     const params = [
       `orgId=${orgId}`,
-      `from=${encodeURIComponent(fromISO)}`,
-      `to=${encodeURIComponent(toISO)}`,
+      `from=${fromTimestamp}`,
+      `to=${toTimestamp}`,
       `timezone=browser`,
       `var-client_id=${farmerId}`,
       `var-land_id=${landId}`,
       `var-section_id=${sectionId || ""}`,
-      `var-columns=`,
+      `var-columns=${encodeURIComponent(column)}`,
       `var-tables=${tablesEncoded}`,
-      `viewPanel=${panelId}`,
-      `editPanel=${panelNumber}`,
+      `panelId=${panelNumber}`,
+      `__feature.dashboardSceneSolo=true`,
     ];
 
     const queryString = params.join("&");
-    const graphUrl = `${grafanaBaseUrl}/d/${dashboardUid}/test?${queryString}`;
+    const graphUrl = `${grafanaBaseUrl}/d-solo/${dashboardUid}/test?${queryString}`;
 
     return {
       url: graphUrl,
@@ -156,8 +156,8 @@ class GrafanaService {
       tables: tables,
       panelId: panelId,
       sectionId: sectionId,
-      from: fromISO,
-      to: toISO,
+      from: fromTimestamp,
+      to: toTimestamp,
     };
   }
 }
