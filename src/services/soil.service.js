@@ -476,6 +476,111 @@ class SoilService {
       landsBreakdown: landsBreakdown,
     };
   }
+
+  /**
+   * Save soil data from IoT device
+   * Creates or updates soil data for a specific farmer, land, and section
+   */
+  static async saveIoTSoilData(soilData) {
+    const {
+      clientId,
+      landId,
+      section,
+      soilMoisture,
+      nitrogen,
+      phosphorus,
+      potassium,
+      ph,
+      organicCarbon,
+      electricalConductivity,
+      soilType,
+      microNutrients,
+      lat,
+      lng,
+    } = soilData;
+
+    // Verify farmer exists
+    const farmer = await Farmer.findByPk(clientId);
+    if (!farmer) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Farmer not found");
+    }
+
+    // Verify land exists and belongs to farmer
+    const land = await Land.findOne({
+      where: {
+        id: landId,
+        clientId: clientId,
+      },
+    });
+
+    if (!land) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "Land not found or does not belong to this farmer"
+      );
+    }
+
+    // Check if soil data already exists for this farmer, land, and section
+    const existingSoil = await SectionSoil.findOne({
+      where: {
+        clientId: clientId,
+        landId: landId,
+        section: section || null,
+      },
+    });
+
+    let savedSoil;
+
+    if (existingSoil) {
+      // Update existing record
+      await existingSoil.update({
+        soilMoisture: soilMoisture !== undefined ? soilMoisture : existingSoil.soilMoisture,
+        nitrogen: nitrogen !== undefined ? nitrogen : existingSoil.nitrogen,
+        phosphorus: phosphorus !== undefined ? phosphorus : existingSoil.phosphorus,
+        potassium: potassium !== undefined ? potassium : existingSoil.potassium,
+        ph: ph !== undefined ? ph : existingSoil.ph,
+        organicCarbon: organicCarbon !== undefined ? organicCarbon : existingSoil.organicCarbon,
+        electricalConductivity:
+          electricalConductivity !== undefined
+            ? electricalConductivity
+            : existingSoil.electricalConductivity,
+        soilType: soilType !== undefined ? soilType : existingSoil.soilType,
+        microNutrients:
+          microNutrients !== undefined ? microNutrients : existingSoil.microNutrients,
+        lat: lat !== undefined ? lat : existingSoil.lat,
+        lng: lng !== undefined ? lng : existingSoil.lng,
+      });
+      savedSoil = existingSoil;
+    } else {
+      // Create new record
+      savedSoil = await SectionSoil.create({
+        clientId: clientId,
+        landId: landId,
+        section: section || null,
+        soilMoisture: soilMoisture || null,
+        nitrogen: nitrogen || null,
+        phosphorus: phosphorus || null,
+        potassium: potassium || null,
+        ph: ph || null,
+        organicCarbon: organicCarbon || null,
+        electricalConductivity: electricalConductivity || null,
+        soilType: soilType || null,
+        microNutrients: microNutrients || null,
+        lat: lat || null,
+        lng: lng || null,
+      });
+    }
+
+    return {
+      id: savedSoil.id,
+      clientId: savedSoil.clientId,
+      landId: savedSoil.landId,
+      section: savedSoil.section,
+      action: existingSoil ? "updated" : "created",
+      createdAt: savedSoil.createdAt,
+      updatedAt: savedSoil.updatedAt,
+    };
+  }
 }
 
 module.exports = SoilService;

@@ -101,9 +101,69 @@ const getSoilStatusByFarmer = catchAsync(async (req, res) => {
   res.status(StatusCodes.OK).json(response);
 });
 
+/**
+ * Save soil data from IoT device
+ */
+const saveIoTSoilData = catchAsync(async (req, res) => {
+  const {
+    clientId,
+    landId,
+    section,
+    soilMoisture,
+    nitrogen,
+    phosphorus,
+    potassium,
+    ph,
+    organicCarbon,
+    electricalConductivity,
+    soilType,
+    microNutrients,
+    lat,
+    lng,
+  } = req.body;
+
+  const clientIdNum = parseInt(clientId, 10);
+  const landIdNum = parseInt(landId, 10);
+
+  if (isNaN(clientIdNum) || isNaN(landIdNum)) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      success: false,
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "Invalid client ID or land ID",
+    });
+  }
+
+  const result = await SoilService.saveIoTSoilData({
+    clientId: clientIdNum,
+    landId: landIdNum,
+    section: section || null,
+    soilMoisture: soilMoisture !== undefined ? parseFloat(soilMoisture) : undefined,
+    nitrogen: nitrogen !== undefined ? parseFloat(nitrogen) : undefined,
+    phosphorus: phosphorus !== undefined ? parseFloat(phosphorus) : undefined,
+    potassium: potassium !== undefined ? parseFloat(potassium) : undefined,
+    ph: ph !== undefined ? parseFloat(ph) : undefined,
+    organicCarbon: organicCarbon !== undefined ? parseFloat(organicCarbon) : undefined,
+    electricalConductivity:
+      electricalConductivity !== undefined ? parseFloat(electricalConductivity) : undefined,
+    soilType: soilType || undefined,
+    microNutrients: microNutrients || undefined,
+    lat: lat !== undefined ? parseFloat(lat) : undefined,
+    lng: lng !== undefined ? parseFloat(lng) : undefined,
+  });
+
+  const response = new ApiResponse(
+    StatusCodes.OK,
+    result,
+    "Soil data saved successfully from IoT device"
+  );
+
+  res.status(StatusCodes.OK).json(response);
+});
+
 module.exports = {
   getSoilData,
   getSoilSections,
   getSoilStatusByFarmer,
+  saveIoTSoilData,
 };
 
