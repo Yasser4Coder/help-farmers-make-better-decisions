@@ -119,6 +119,72 @@ router.get(
 
 /**
  * @swagger
+ * /api/soil/{farmerId}/{landId}/sections:
+ *   get:
+ *     summary: Get all soil sections for a farmer and land
+ *     description: Retrieves a list of all available sections for a specific farmer and land.
+ *     tags: [Soil]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: farmerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Farmer ID
+ *         example: 1
+ *       - in: path
+ *         name: landId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Land ID
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Soil sections retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     sections:
+ *                       type: array
+ *                       items:
+ *                         type: string
+ *                       example: ["A1", "A2", "B1"]
+ *                     count:
+ *                       type: integer
+ *                       example: 3
+ *                 message:
+ *                   type: string
+ *                   example: "Soil sections retrieved successfully"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Invalid parameters
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Farmer or land not found
+ */
+router.get(
+  "/:farmerId/:landId/sections",
+  apiLimiter,
+  authenticateIng,
+  soilController.getSoilSections
+);
+
+/**
+ * @swagger
  * /api/soil/{farmerId}/{landId}/{section}:
  *   get:
  *     summary: Get soil data by farmer, land, and section
@@ -297,72 +363,6 @@ router.get(
   apiLimiter,
   authenticateIng,
   soilController.getSoilData
-);
-
-/**
- * @swagger
- * /api/soil/{farmerId}/{landId}/sections:
- *   get:
- *     summary: Get all soil sections for a farmer and land
- *     description: Retrieves a list of all available sections for a specific farmer and land.
- *     tags: [Soil]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: farmerId
- *         required: true
- *         schema:
- *           type: integer
- *         description: Farmer ID
- *         example: 1
- *       - in: path
- *         name: landId
- *         required: true
- *         schema:
- *           type: integer
- *         description: Land ID
- *         example: 1
- *     responses:
- *       200:
- *         description: Soil sections retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 statusCode:
- *                   type: integer
- *                   example: 200
- *                 data:
- *                   type: object
- *                   properties:
- *                     sections:
- *                       type: array
- *                       items:
- *                         type: string
- *                       example: ["A1", "A2", "B1"]
- *                     count:
- *                       type: integer
- *                       example: 3
- *                 message:
- *                   type: string
- *                   example: "Soil sections retrieved successfully"
- *                 success:
- *                   type: boolean
- *                   example: true
- *       400:
- *         description: Invalid parameters
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: Farmer or land not found
- */
-router.get(
-  "/:farmerId/:landId/sections",
-  apiLimiter,
-  authenticateIng,
-  soilController.getSoilSections
 );
 
 module.exports = router;

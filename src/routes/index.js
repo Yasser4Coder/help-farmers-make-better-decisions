@@ -10,6 +10,7 @@ const overviewRoutes = require("./overview.routes");
 const cronRoutes = require("./cron.routes");
 const grafanaRoutes = require("./grafana.routes");
 const alertRoutes = require("./alert.routes");
+const recommendationRoutes = require("./recommendation.routes");
 
 /**
  * @swagger
@@ -71,6 +72,9 @@ router.use("/grafana", grafanaRoutes);
 
 // Alert routes
 router.use("/alerts", alertRoutes);
+
+// Recommendation routes
+router.use("/recommendations", recommendationRoutes);
 
 module.exports = router;
 
