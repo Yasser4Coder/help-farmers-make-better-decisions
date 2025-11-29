@@ -7,6 +7,7 @@ const weatherRoutes = require("./weather.routes");
 const farmerRoutes = require("./farmer.routes");
 const soilRoutes = require("./soil.routes");
 const overviewRoutes = require("./overview.routes");
+const cronRoutes = require("./cron.routes");
 
 /**
  * @swagger
@@ -59,6 +60,9 @@ router.use("/soil", soilRoutes);
 
 // Overview routes
 router.use("/overview", overviewRoutes);
+
+// Cron job routes
+router.use("/cron", cronRoutes);
 
 module.exports = router;
 

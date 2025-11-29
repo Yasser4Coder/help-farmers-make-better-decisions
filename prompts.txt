@@ -1,0 +1,6 @@
+------- forecasting -----------
+
+do 3-Day Forecast data of the weather 
+by useing this api https://api.weatherapi.com/v1/forecast.json?key=WEATHER_API_KEY&q=(lat, lng of the land of spesific farmer)&days=3
+
+like the image i atteched u but only 3 days not 7

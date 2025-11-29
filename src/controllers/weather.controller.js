@@ -1,13 +1,16 @@
 const catchAsync = require("../utils/catchAsync");
 const ApiResponse = require("../utils/ApiResponse");
 const WeatherService = require("../services/weather.service");
+const CronService = require("../services/cron.service");
 const { StatusCodes } = require("../constants");
 const { Land } = require("../models");
 const ApiError = require("../utils/ApiError");
+const logger = require("../config/logger");
 
 /**
  * Fetch and save weather data for a location
  * Always fetches 3 months of data from today
+ * Also starts the cron job if it's not already running
  */
 const fetchAndSaveWeather = catchAsync(async (req, res) => {
   const { landId } = req.body;
@@ -24,6 +27,15 @@ const fetchAndSaveWeather = catchAsync(async (req, res) => {
       StatusCodes.BAD_REQUEST,
       "Land does not have latitude and longitude coordinates"
     );
+  }
+
+  // Start cron job if not already running
+  try {
+    await CronService.startWeatherCronJob();
+    logger.info("Weather cron job started automatically from fetch-and-save endpoint");
+  } catch (error) {
+    // Log error but don't fail the request
+    logger.warn("Error starting cron job:", error.message);
   }
 
   // Always calculate 3 months from today

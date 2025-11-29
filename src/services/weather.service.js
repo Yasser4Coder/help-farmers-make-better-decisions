@@ -142,28 +142,46 @@ class WeatherService {
           }
         );
 
-        const existing =
-          existingRecords.length > 0
-            ? await Weather.findByPk(existingRecords[0].id)
-            : null;
-
-        if (existing) {
-          await existing.update({
-            time: weatherDate,
-            temperature: dayData.avgtemp_c || null,
-            rainfall: dayData.totalprecip_mm || null,
-            humidity: dayData.avghumidity || null,
-            sunlightSolarRadiation: dayData.uv || null,
-            sunlightHoursPerDay: sunlightHours,
-            rateOfWaterLoss: rateOfWaterLoss || null,
-            weatherSeason: season,
-            frost: extremeWeather.frost,
-            heatwaves: extremeWeather.heatwaves,
-            storms: extremeWeather.storms,
-          });
-
-          savedRecords.push({ date, action: "updated", id: existing.id });
+        // Always update existing record if found, otherwise create new one
+        if (existingRecords.length > 0) {
+          // Update existing record using raw query for better performance
+          const existingId = existingRecords[0].id;
+          await sequelize.query(
+            `UPDATE weathers 
+             SET 
+               time = :time,
+               temperature = :temperature,
+               rainfall = :rainfall,
+               humidity = :humidity,
+               sunlight_solar_radiation = :sunlightSolarRadiation,
+               sunlight_hours_per_day = :sunlightHoursPerDay,
+               rate_of_water_loss = :rateOfWaterLoss,
+               weather_season = :weatherSeason,
+               frost = :frost,
+               heatwaves = :heatwaves,
+               storms = :storms,
+               updated_at = NOW()
+             WHERE id = :id`,
+            {
+              replacements: {
+                id: existingId,
+                time: weatherDate,
+                temperature: dayData.avgtemp_c || null,
+                rainfall: dayData.totalprecip_mm || null,
+                humidity: dayData.avghumidity || null,
+                sunlightSolarRadiation: dayData.uv || null,
+                sunlightHoursPerDay: sunlightHours,
+                rateOfWaterLoss: rateOfWaterLoss || null,
+                weatherSeason: season,
+                frost: extremeWeather.frost,
+                heatwaves: extremeWeather.heatwaves,
+                storms: extremeWeather.storms,
+              },
+            }
+          );
+          savedRecords.push({ date, action: "updated", id: existingId });
         } else {
+          // Create new record
           const weatherRecord = await Weather.create({
             landId,
             clientId,
