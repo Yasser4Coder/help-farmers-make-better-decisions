@@ -13,6 +13,112 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
  * @swagger
+ * /api/soil/farmer/{farmerId}/status:
+ *   get:
+ *     summary: Get overall soil status for a specific farmer
+ *     description: Retrieves aggregated soil health status for a farmer across all their lands and sections. Returns overall health score, status, and breakdown by land.
+ *     tags: [Soil]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: farmerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Farmer ID
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Soil status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     farmerId:
+ *                       type: integer
+ *                       example: 1
+ *                     overallHealthScore:
+ *                       type: integer
+ *                       description: Average soil health score across all sections (0-100)
+ *                       example: 75
+ *                     overallStatus:
+ *                       type: string
+ *                       description: Overall soil health status
+ *                       enum: [Excellent, Good, Medium, Poor, Very Poor]
+ *                       example: "Good"
+ *                     totalSections:
+ *                       type: integer
+ *                       description: Total number of sections analyzed
+ *                       example: 5
+ *                     landsCount:
+ *                       type: integer
+ *                       description: Number of lands
+ *                       example: 2
+ *                     landsBreakdown:
+ *                       type: array
+ *                       description: Breakdown of soil status by land
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           landId:
+ *                             type: integer
+ *                             example: 1
+ *                           averageHealthScore:
+ *                             type: integer
+ *                             example: 78
+ *                           status:
+ *                             type: string
+ *                             enum: [Excellent, Good, Medium, Poor, Very Poor]
+ *                             example: "Good"
+ *                           sectionsCount:
+ *                             type: integer
+ *                             example: 3
+ *                           sections:
+ *                             type: array
+ *                             description: Individual section statuses
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 section:
+ *                                   type: string
+ *                                   example: "A1"
+ *                                 healthScore:
+ *                                   type: integer
+ *                                   example: 80
+ *                                 status:
+ *                                   type: string
+ *                                   enum: [Excellent, Good, Medium, Poor, Very Poor]
+ *                                   example: "Good"
+ *                 message:
+ *                   type: string
+ *                   example: "Soil status retrieved successfully"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Invalid farmer ID
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Farmer not found or no soil data available
+ */
+router.get(
+  "/farmer/:farmerId/status",
+  apiLimiter,
+  authenticateIng,
+  soilController.getSoilStatusByFarmer
+);
+
+/**
+ * @swagger
  * /api/soil/{farmerId}/{landId}/{section}:
  *   get:
  *     summary: Get soil data by farmer, land, and section

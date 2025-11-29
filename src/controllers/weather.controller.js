@@ -1,23 +1,16 @@
 const catchAsync = require("../utils/catchAsync");
 const ApiResponse = require("../utils/ApiResponse");
 const WeatherService = require("../services/weather.service");
-const CronService = require("../services/cron.service");
 const { StatusCodes } = require("../constants");
 const { Land } = require("../models");
 const ApiError = require("../utils/ApiError");
-const logger = require("../config/logger");
 
-/**
- * Fetch and save weather data for a location
- * Always fetches 3 months of data from today
- * Also starts the cron job if it's not already running
- */
 const fetchAndSaveWeather = catchAsync(async (req, res) => {
   const { landId } = req.body;
 
   // Fetch land data to get lat, lng, and clientId
   const land = await Land.findByPk(landId);
-  
+
   if (!land) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Land not found");
   }
@@ -27,15 +20,6 @@ const fetchAndSaveWeather = catchAsync(async (req, res) => {
       StatusCodes.BAD_REQUEST,
       "Land does not have latitude and longitude coordinates"
     );
-  }
-
-  // Start cron job if not already running
-  try {
-    await CronService.startWeatherCronJob();
-    logger.info("Weather cron job started automatically from fetch-and-save endpoint");
-  } catch (error) {
-    // Log error but don't fail the request
-    logger.warn("Error starting cron job:", error.message);
   }
 
   // Always calculate 3 months from today
@@ -71,7 +55,7 @@ const getWeatherForecast = catchAsync(async (req, res) => {
 
   // Fetch land data to get lat and lng
   const land = await Land.findByPk(landId);
-  
+
   if (!land) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Land not found");
   }
@@ -92,7 +76,20 @@ const getWeatherForecast = catchAsync(async (req, res) => {
   // Helper function to format date (e.g., "Mar 6")
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
     const month = monthNames[date.getMonth()];
     const day = date.getDate();
     return `${month} ${day}`;
@@ -104,7 +101,7 @@ const getWeatherForecast = catchAsync(async (req, res) => {
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     const dayName = dayNames[date.getDay()];
     const formattedDate = formatDate(dateString);
-    
+
     if (index === 0) {
       return `Today (${dayName}) ${formattedDate}`;
     }
@@ -118,37 +115,38 @@ const getWeatherForecast = catchAsync(async (req, res) => {
     // Simplified AQI calculation based on weather conditions
     // Real AQI would require air pollution data, but we'll approximate
     let baseAQI = 50; // Base value
-    
+
     // Adjust based on humidity (higher humidity can trap pollutants)
     if (dayData.avghumidity > 70) baseAQI += 10;
     else if (dayData.avghumidity > 50) baseAQI += 5;
-    
+
     // Adjust based on wind (more wind disperses pollutants)
     if (dayData.maxwind_kph < 10) baseAQI += 15;
     else if (dayData.maxwind_kph < 20) baseAQI += 5;
-    
+
     // Adjust based on UV (higher UV can indicate clearer skies)
     if (dayData.uv > 7) baseAQI -= 5;
-    
+
     // Randomize slightly to match image values (between 60-75 range)
     const random = Math.floor(Math.random() * 10);
     baseAQI += random;
-    
+
     // Keep in reasonable AQI range (30-100)
     return Math.max(30, Math.min(100, baseAQI));
   };
 
   // Format the forecast data - only include what's shown in the image
-  const formattedForecast = forecastData.forecast?.forecastday?.slice(0, 3).map((day, index) => ({
-    dayName: getDayName(day.date, index),
-    condition: {
-      text: day.day?.condition?.text || "Unknown",
-      icon: day.day?.condition?.icon || null,
-    },
-    tempMax: Math.round(day.day?.maxtemp_c || 0),
-    tempMin: Math.round(day.day?.mintemp_c || 0),
-    aqi: calculateAQI(day.day || {}),
-  })) || [];
+  const formattedForecast =
+    forecastData.forecast?.forecastday?.slice(0, 3).map((day, index) => ({
+      dayName: getDayName(day.date, index),
+      condition: {
+        text: day.day?.condition?.text || "Unknown",
+        icon: day.day?.condition?.icon || null,
+      },
+      tempMax: Math.round(day.day?.maxtemp_c || 0),
+      tempMin: Math.round(day.day?.mintemp_c || 0),
+      aqi: calculateAQI(day.day || {}),
+    })) || [];
 
   const response = new ApiResponse(
     StatusCodes.OK,
@@ -167,7 +165,7 @@ const getTodayWeather = catchAsync(async (req, res) => {
 
   // Fetch land data to get lat and lng
   const land = await Land.findByPk(landId);
-  
+
   if (!land) {
     throw new ApiError(StatusCodes.NOT_FOUND, "Land not found");
   }
@@ -192,21 +190,29 @@ const getTodayWeather = catchAsync(async (req, res) => {
   // Format the response to match the image
   const todayWeatherData = {
     rain: {
-      value: Math.round(todayForecast?.day?.totalprecip_mm || currentWeather?.precip_mm || 0),
-      unit: "MM"
+      value: Math.round(
+        todayForecast?.day?.totalprecip_mm || currentWeather?.precip_mm || 0
+      ),
+      unit: "MM",
     },
     temperature: {
-      value: Math.round(currentWeather?.temp_c || todayForecast?.day?.avgtemp_c || 0),
-      unit: "°C"
+      value: Math.round(
+        currentWeather?.temp_c || todayForecast?.day?.avgtemp_c || 0
+      ),
+      unit: "°C",
     },
     wind: {
-      value: Math.round(currentWeather?.wind_kph || todayForecast?.day?.maxwind_kph || 0),
-      unit: "km/H"
+      value: Math.round(
+        currentWeather?.wind_kph || todayForecast?.day?.maxwind_kph || 0
+      ),
+      unit: "km/H",
     },
     humidity: {
-      value: Math.round(currentWeather?.humidity || todayForecast?.day?.avghumidity || 0),
-      unit: "%"
-    }
+      value: Math.round(
+        currentWeather?.humidity || todayForecast?.day?.avghumidity || 0
+      ),
+      unit: "%",
+    },
   };
 
   const response = new ApiResponse(
@@ -218,9 +224,38 @@ const getTodayWeather = catchAsync(async (req, res) => {
   res.status(StatusCodes.OK).json(response);
 });
 
+/**
+ * Get overall weather status for a specific farmer
+ */
+const getWeatherStatusByFarmer = catchAsync(async (req, res) => {
+  const { farmerId } = req.params;
+
+  const farmerIdNum = parseInt(farmerId, 10);
+
+  if (isNaN(farmerIdNum)) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      success: false,
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "Invalid farmer ID",
+    });
+  }
+
+  const weatherStatus = await WeatherService.getWeatherStatusByFarmer(
+    farmerIdNum
+  );
+
+  const response = new ApiResponse(
+    StatusCodes.OK,
+    weatherStatus,
+    "Weather status retrieved successfully"
+  );
+
+  res.status(StatusCodes.OK).json(response);
+});
+
 module.exports = {
   fetchAndSaveWeather,
   getWeatherForecast,
   getTodayWeather,
+  getWeatherStatusByFarmer,
 };
-

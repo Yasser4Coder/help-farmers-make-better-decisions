@@ -8,6 +8,8 @@ const farmerRoutes = require("./farmer.routes");
 const soilRoutes = require("./soil.routes");
 const overviewRoutes = require("./overview.routes");
 const cronRoutes = require("./cron.routes");
+const grafanaRoutes = require("./grafana.routes");
+const alertRoutes = require("./alert.routes");
 
 /**
  * @swagger
@@ -63,6 +65,12 @@ router.use("/overview", overviewRoutes);
 
 // Cron job routes
 router.use("/cron", cronRoutes);
+
+// Grafana routes
+router.use("/grafana", grafanaRoutes);
+
+// Alert routes
+router.use("/alerts", alertRoutes);
 
 module.exports = router;
 

@@ -74,8 +74,36 @@ const getSoilSections = catchAsync(async (req, res) => {
   res.status(StatusCodes.OK).json(response);
 });
 
+/**
+ * Get overall soil status for a specific farmer
+ */
+const getSoilStatusByFarmer = catchAsync(async (req, res) => {
+  const { farmerId } = req.params;
+
+  const farmerIdNum = parseInt(farmerId, 10);
+
+  if (isNaN(farmerIdNum)) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      success: false,
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "Invalid farmer ID",
+    });
+  }
+
+  const soilStatus = await SoilService.getSoilStatusByFarmer(farmerIdNum);
+
+  const response = new ApiResponse(
+    StatusCodes.OK,
+    soilStatus,
+    "Soil status retrieved successfully"
+  );
+
+  res.status(StatusCodes.OK).json(response);
+});
+
 module.exports = {
   getSoilData,
   getSoilSections,
+  getSoilStatusByFarmer,
 };
 

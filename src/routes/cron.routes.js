@@ -14,8 +14,8 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  * @swagger
  * /api/cron/weather/start:
  *   post:
- *     summary: Start weather data fetching cron job
- *     description: Starts a cron job that automatically fetches and updates weather data for all lands every 30 minutes. Existing weather records for the same land, client, and date will be updated instead of creating duplicates.
+ *     summary: Start weather alert generation cron job
+ *     description: Starts a cron job that runs daily at midnight to fetch 3-day weather forecasts for all farmers' lands and generates alerts (irrigation, temperature, rainfall, wind) based on weather conditions and soil data. Alerts are saved to the alerts table.
  *     tags: [Cron Jobs]
  *     responses:
  *       200:
@@ -36,10 +36,10 @@ const { apiLimiter } = require("../middlewares/rateLimit.middleware");
  *                       example: "Weather cron job started successfully"
  *                     schedule:
  *                       type: string
- *                       example: "Every 30 minutes"
- *                     landsCount:
+ *                       example: "Daily at midnight (00:00)"
+ *                     farmersCount:
  *                       type: integer
- *                       description: Number of lands that will be processed
+ *                       description: Number of farmer-land combinations that will be processed
  *                       example: 3
  *                 message:
  *                   type: string
@@ -74,8 +74,8 @@ router.post(
  * @swagger
  * /api/cron/weather/stop:
  *   post:
- *     summary: Stop weather data fetching cron job
- *     description: Stops the currently running weather data fetching cron job.
+ *     summary: Stop weather alert generation cron job
+ *     description: Stops the currently running weather alert generation cron job.
  *     tags: [Cron Jobs]
  *     responses:
  *       200:
@@ -128,7 +128,7 @@ router.post(
  * /api/cron/weather/status:
  *   get:
  *     summary: Get weather cron job status
- *     description: Retrieves the current status of the weather data fetching cron job.
+ *     description: Retrieves the current status of the weather alert generation cron job.
  *     tags: [Cron Jobs]
  *     responses:
  *       200:
@@ -155,7 +155,7 @@ router.post(
  *                     schedule:
  *                       type: string
  *                       nullable: true
- *                       example: "Every 30 minutes"
+ *                       example: "Daily at midnight (00:00)"
  *                 message:
  *                   type: string
  *                   example: "Cron job status retrieved successfully"

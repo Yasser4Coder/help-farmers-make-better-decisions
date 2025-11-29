@@ -3,6 +3,7 @@ const router = express.Router();
 const weatherController = require("../controllers/weather.controller");
 const weatherValidation = require("../validations/weather.validation");
 const validate = require("../middlewares/validate.middleware");
+const { authenticateIng } = require("../middlewares/auth.middleware");
 const { apiLimiter } = require("../middlewares/rateLimit.middleware");
 
 /**
@@ -421,6 +422,182 @@ router.get(
   apiLimiter,
   validate(weatherValidation.getForecast),
   weatherController.getTodayWeather
+);
+
+/**
+ * @swagger
+ * /api/weather/farmer/{farmerId}/status:
+ *   get:
+ *     summary: Get overall weather status for a specific farmer
+ *     description: Retrieves aggregated weather status for a farmer across all their lands. Returns overall weather impact, average conditions, and breakdown by land based on the last 7 days of weather data.
+ *     tags: [Weather]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: farmerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Farmer ID
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Weather status retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     farmerId:
+ *                       type: integer
+ *                       example: 1
+ *                     overallWeatherStatus:
+ *                       type: string
+ *                       description: Overall weather impact status
+ *                       enum: [Great, Medium, Bad, N/A]
+ *                       example: "Good"
+ *                     overallAverageTemperature:
+ *                       type: number
+ *                       nullable: true
+ *                       description: Average temperature across all lands (°C)
+ *                       example: 22.5
+ *                     overallTotalRainfall:
+ *                       type: number
+ *                       description: Total rainfall across all lands (mm)
+ *                       example: 15.5
+ *                     overallAverageHumidity:
+ *                       type: number
+ *                       nullable: true
+ *                       description: Average humidity across all lands (%)
+ *                       example: 65.0
+ *                     totalDaysAnalyzed:
+ *                       type: integer
+ *                       description: Total number of weather records analyzed
+ *                       example: 14
+ *                     landsCount:
+ *                       type: integer
+ *                       description: Number of lands
+ *                       example: 2
+ *                     landsBreakdown:
+ *                       type: array
+ *                       description: Breakdown of weather status by land
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           landId:
+ *                             type: integer
+ *                             example: 1
+ *                           location:
+ *                             type: string
+ *                             example: "Algiers"
+ *                           averageTemperature:
+ *                             type: number
+ *                             nullable: true
+ *                             example: 23.0
+ *                           totalRainfall:
+ *                             type: number
+ *                             example: 10.5
+ *                           averageHumidity:
+ *                             type: number
+ *                             nullable: true
+ *                             example: 65.5
+ *                           weatherStatus:
+ *                             type: string
+ *                             enum: [Great, Medium, Bad, N/A]
+ *                             example: "Great"
+ *                           extremeWeatherDays:
+ *                             type: integer
+ *                             description: Number of days with extreme weather (frost, heatwaves, storms)
+ *                             example: 2
+ *                           totalDays:
+ *                             type: integer
+ *                             description: Total number of days with weather data
+ *                             example: 7
+ *                           latestWeather:
+ *                             type: object
+ *                             properties:
+ *                               date:
+ *                                 type: string
+ *                                 format: date-time
+ *                               temperature:
+ *                                 type: number
+ *                                 nullable: true
+ *                               rainfall:
+ *                                 type: number
+ *                                 nullable: true
+ *                               humidity:
+ *                                 type: number
+ *                                 nullable: true
+ *                               impact:
+ *                                 type: string
+ *                                 enum: [Great, Medium, Bad, N/A]
+ *                 message:
+ *                   type: string
+ *                   example: "Weather status retrieved successfully"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Invalid farmer ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 400
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid farmer ID"
+ *       401:
+ *         description: Unauthorized
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 401
+ *                 message:
+ *                   type: string
+ *                   example: "Access token is missing or invalid"
+ *       404:
+ *         description: Farmer not found or no weather data available
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 404
+ *                 message:
+ *                   type: string
+ *                   example: "No weather data found for this farmer in the last 7 days"
+ */
+router.get(
+  "/farmer/:farmerId/status",
+  apiLimiter,
+  authenticateIng,
+  weatherController.getWeatherStatusByFarmer
 );
 
 module.exports = router;

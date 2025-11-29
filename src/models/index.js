@@ -10,6 +10,7 @@ const CropRec = require("./CropRec");
 const CropTable = require("./CropTable");
 const CropSectionSoil = require("./CropSectionSoil");
 const Weather = require("./Weather");
+const Alert = require("./Alert");
 
 const db = {
   sequelize,
@@ -23,6 +24,7 @@ const db = {
   CropTable,
   CropSectionSoil,
   Weather,
+  Alert,
 };
 
 // ========== Define Relationships ==========
@@ -132,6 +134,28 @@ Farmer.hasMany(Weather, {
 Weather.belongsTo(Farmer, {
   foreignKey: "clientId",
   as: "client",
+});
+
+// 10. Farmer → Alert: One-to-Many relationship
+Farmer.hasMany(Alert, {
+  foreignKey: "farmerId",
+  as: "alerts",
+});
+
+Alert.belongsTo(Farmer, {
+  foreignKey: "farmerId",
+  as: "farmer",
+});
+
+// 11. Land → Alert: One-to-Many relationship
+Land.hasMany(Alert, {
+  foreignKey: "landId",
+  as: "alerts",
+});
+
+Alert.belongsTo(Land, {
+  foreignKey: "landId",
+  as: "land",
 });
 
 module.exports = db;

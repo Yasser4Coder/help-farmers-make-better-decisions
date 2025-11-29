@@ -259,6 +259,235 @@ class WeatherService {
       errorDetails: errors,
     };
   }
+
+  /**
+   * Get overall weather status for a specific farmer
+   * Returns aggregated weather data across all their lands
+   */
+  static async getWeatherStatusByFarmer(farmerId) {
+    const { sequelize } = require("../config/db");
+    const { Farmer, Land } = require("../models");
+    const OverviewService = require("./overview.service");
+
+    // Verify farmer exists
+    const farmer = await Farmer.findByPk(farmerId);
+    if (!farmer) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Farmer not found");
+    }
+
+    // Get all weather records for this farmer (last 7 days, grouped by land)
+    const results = await sequelize.query(
+      `SELECT 
+         w.id,
+         w.land_id,
+         w.time,
+         w.temperature,
+         w.rainfall,
+         w.humidity,
+         w.sunlight_solar_radiation,
+         w.sunlight_hours_per_day,
+         w.rate_of_water_loss,
+         w.weather_season,
+         w.frost,
+         w.heatwaves,
+         w.storms,
+         l.lat,
+         l.lng
+       FROM weathers w
+       INNER JOIN lands l ON w.land_id = l.id
+       WHERE w.client_id = :farmerId
+       AND w.time >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+       ORDER BY w.land_id, w.time DESC`,
+      {
+        replacements: { farmerId },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (!results || results.length === 0) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "No weather data found for this farmer in the last 7 days"
+      );
+    }
+
+    // Group weather data by land
+    const landsData = {};
+
+    for (const row of results) {
+      const landId = row.land_id;
+      if (!landsData[landId]) {
+        landsData[landId] = {
+          landId: landId,
+          lat: row.lat ? parseFloat(row.lat) : null,
+          lng: row.lng ? parseFloat(row.lng) : null,
+          records: [],
+          temperatures: [],
+          rainfalls: [],
+          humidities: [],
+          impacts: [],
+        };
+      }
+
+      const weatherRecord = {
+        time: row.time,
+        temperature: row.temperature ? parseFloat(row.temperature) : null,
+        rainfall: row.rainfall ? parseFloat(row.rainfall) : null,
+        humidity: row.humidity ? parseFloat(row.humidity) : null,
+        sunlightSolarRadiation: row.sunlight_solar_radiation
+          ? parseFloat(row.sunlight_solar_radiation)
+          : null,
+        sunlightHoursPerDay: row.sunlight_hours_per_day
+          ? parseFloat(row.sunlight_hours_per_day)
+          : null,
+        frost: row.frost === 1 || row.frost === true,
+        heatwaves: row.heatwaves === 1 || row.heatwaves === true,
+        storms: row.storms === 1 || row.storms === true,
+      };
+
+      landsData[landId].records.push(weatherRecord);
+      if (weatherRecord.temperature !== null)
+        landsData[landId].temperatures.push(weatherRecord.temperature);
+      if (weatherRecord.rainfall !== null)
+        landsData[landId].rainfalls.push(weatherRecord.rainfall);
+      if (weatherRecord.humidity !== null)
+        landsData[landId].humidities.push(weatherRecord.humidity);
+
+      // Calculate weather impact for each day
+      const impact = OverviewService.getWeatherImpact(weatherRecord);
+      landsData[landId].impacts.push(impact);
+    }
+
+    // Calculate averages and overall status per land
+    const landsBreakdown = [];
+    let overallImpacts = [];
+
+    for (const [landId, landData] of Object.entries(landsData)) {
+      const avgTemperature =
+        landData.temperatures.length > 0
+          ? parseFloat(
+              (
+                landData.temperatures.reduce((a, b) => a + b, 0) /
+                landData.temperatures.length
+              ).toFixed(1)
+            )
+          : null;
+
+      const totalRainfall =
+        landData.rainfalls.length > 0
+          ? parseFloat(landData.rainfalls.reduce((a, b) => a + b, 0).toFixed(2))
+          : 0;
+
+      const avgHumidity =
+        landData.humidities.length > 0
+          ? parseFloat(
+              (
+                landData.humidities.reduce((a, b) => a + b, 0) /
+                landData.humidities.length
+              ).toFixed(1)
+            )
+          : null;
+
+      // Determine overall weather status for this land (most common impact)
+      const impactCounts = landData.impacts.reduce((acc, impact) => {
+        acc[impact] = (acc[impact] || 0) + 1;
+        return acc;
+      }, {});
+      const dominantImpact = Object.keys(impactCounts).reduce((a, b) =>
+        impactCounts[a] > impactCounts[b] ? a : b
+      );
+
+      // Count extreme weather days
+      const extremeWeatherDays = landData.records.filter(
+        (r) => r.frost || r.heatwaves || r.storms
+      ).length;
+
+      const latestRecord = landData.records[0]; // Already sorted DESC
+
+      const location = OverviewService.getLocationName(
+        landData.lat,
+        landData.lng
+      );
+
+      landsBreakdown.push({
+        landId: parseInt(landId),
+        location: location,
+        averageTemperature: avgTemperature,
+        totalRainfall: totalRainfall,
+        averageHumidity: avgHumidity,
+        weatherStatus: dominantImpact,
+        extremeWeatherDays: extremeWeatherDays,
+        totalDays: landData.records.length,
+        latestWeather: {
+          date: latestRecord.time,
+          temperature: latestRecord.temperature,
+          rainfall: latestRecord.rainfall,
+          humidity: latestRecord.humidity,
+          impact: OverviewService.getWeatherImpact(latestRecord),
+        },
+      });
+
+      overallImpacts = overallImpacts.concat(landData.impacts);
+    }
+
+    // Determine overall weather status (most common impact across all lands)
+    const overallImpactCounts = overallImpacts.reduce((acc, impact) => {
+      acc[impact] = (acc[impact] || 0) + 1;
+      return acc;
+    }, {});
+    const overallWeatherStatus =
+      Object.keys(overallImpactCounts).length > 0
+        ? Object.keys(overallImpactCounts).reduce((a, b) =>
+            overallImpactCounts[a] > overallImpactCounts[b] ? a : b
+          )
+        : "N/A";
+
+    // Calculate overall averages
+    const allTemperatures = Object.values(landsData)
+      .flatMap((land) => land.temperatures)
+      .filter((t) => t !== null);
+    const allRainfalls = Object.values(landsData)
+      .flatMap((land) => land.rainfalls)
+      .filter((r) => r !== null);
+    const allHumidities = Object.values(landsData)
+      .flatMap((land) => land.humidities)
+      .filter((h) => h !== null);
+
+    const overallAverageTemperature =
+      allTemperatures.length > 0
+        ? parseFloat(
+            (
+              allTemperatures.reduce((a, b) => a + b, 0) /
+              allTemperatures.length
+            ).toFixed(1)
+          )
+        : null;
+
+    const overallTotalRainfall =
+      allRainfalls.length > 0
+        ? parseFloat(allRainfalls.reduce((a, b) => a + b, 0).toFixed(2))
+        : 0;
+
+    const overallAverageHumidity =
+      allHumidities.length > 0
+        ? parseFloat(
+            (
+              allHumidities.reduce((a, b) => a + b, 0) / allHumidities.length
+            ).toFixed(1)
+          )
+        : null;
+
+    return {
+      farmerId: farmerId,
+      overallWeatherStatus: overallWeatherStatus,
+      overallAverageTemperature: overallAverageTemperature,
+      overallTotalRainfall: overallTotalRainfall,
+      overallAverageHumidity: overallAverageHumidity,
+      totalDaysAnalyzed: results.length,
+      landsCount: Object.keys(landsData).length,
+      landsBreakdown: landsBreakdown,
+    };
+  }
 }
 
 module.exports = WeatherService;

@@ -250,6 +250,131 @@ class SoilService {
 
     return results.map((row) => row.section);
   }
+
+  /**
+   * Get overall soil status for a specific farmer (aggregated across all lands and sections)
+   */
+  static async getSoilStatusByFarmer(farmerId) {
+    // Verify farmer exists
+    const farmer = await Farmer.findByPk(farmerId);
+    if (!farmer) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Farmer not found");
+    }
+
+    // Get all soil records for this farmer (latest record per section)
+    const results = await sequelize.query(
+      `SELECT 
+         ss.id,
+         ss.land_id,
+         ss.section,
+         ss.soil_moisture,
+         ss.ph,
+         ss.electrical_conductivity,
+         ss.organic_carbon,
+         ss.nitrogen,
+         ss.phosphorus,
+         ss.potassium,
+         ss.soil_type,
+         ss.created_at
+       FROM section_soils ss
+       INNER JOIN (
+         SELECT land_id, section, MAX(created_at) as max_date
+         FROM section_soils
+         WHERE client_id = :farmerId
+         GROUP BY land_id, section
+       ) latest ON ss.land_id = latest.land_id 
+                  AND ss.section = latest.section 
+                  AND ss.created_at = latest.max_date
+       WHERE ss.client_id = :farmerId
+       ORDER BY ss.land_id, ss.section`,
+      {
+        replacements: { farmerId },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    if (!results || results.length === 0) {
+      throw new ApiError(
+        StatusCodes.NOT_FOUND,
+        "No soil data found for this farmer"
+      );
+    }
+
+    // Calculate health scores for each record
+    const healthScores = [];
+    const landsData = {};
+
+    for (const row of results) {
+      const soilData = {
+        ph: row.ph ? parseFloat(row.ph) : null,
+        soilMoisture: row.soil_moisture ? parseFloat(row.soil_moisture) : null,
+        electricalConductivity: row.electrical_conductivity
+          ? parseFloat(row.electrical_conductivity)
+          : null,
+        organicCarbon: row.organic_carbon
+          ? parseFloat(row.organic_carbon)
+          : null,
+        nitrogen: row.nitrogen ? parseFloat(row.nitrogen) : null,
+      };
+
+      const healthScore = this.calculateSoilHealthScore(soilData);
+      healthScores.push(healthScore);
+
+      // Group by land for breakdown
+      const landId = row.land_id;
+      if (!landsData[landId]) {
+        landsData[landId] = {
+          landId: landId,
+          sections: [],
+          scores: [],
+        };
+      }
+      landsData[landId].sections.push({
+        section: row.section,
+        healthScore: healthScore,
+        status: this.getOverallStatus(healthScore),
+      });
+      landsData[landId].scores.push(healthScore);
+    }
+
+    // Calculate overall average health score
+    const overallHealthScore =
+      healthScores.length > 0
+        ? Math.round(
+            healthScores.reduce((sum, score) => sum + score, 0) /
+              healthScores.length
+          )
+        : 0;
+
+    const overallStatus = this.getOverallStatus(overallHealthScore);
+
+    // Calculate average score per land
+    const landsBreakdown = Object.values(landsData).map((land) => {
+      const avgScore =
+        land.scores.length > 0
+          ? Math.round(
+              land.scores.reduce((sum, score) => sum + score, 0) /
+                land.scores.length
+            )
+          : 0;
+      return {
+        landId: land.landId,
+        averageHealthScore: avgScore,
+        status: this.getOverallStatus(avgScore),
+        sectionsCount: land.sections.length,
+        sections: land.sections,
+      };
+    });
+
+    return {
+      farmerId: farmerId,
+      overallHealthScore: overallHealthScore,
+      overallStatus: overallStatus,
+      totalSections: results.length,
+      landsCount: Object.keys(landsData).length,
+      landsBreakdown: landsBreakdown,
+    };
+  }
 }
 
 module.exports = SoilService;

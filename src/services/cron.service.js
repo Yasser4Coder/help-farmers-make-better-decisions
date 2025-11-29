@@ -1,5 +1,4 @@
 const cron = require("node-cron");
-const axios = require("axios");
 const logger = require("../config/logger");
 
 /**
@@ -11,8 +10,55 @@ class CronService {
   static isRunning = false;
 
   /**
-   * Start weather data fetching cron job
-   * Calls /api/weather/fetch-and-save every 30 minutes for all lands
+   * Generate alert for a farmer
+   */
+  static async generateAlert(
+    farmerId,
+    landId,
+    section,
+    alertType,
+    title,
+    description
+  ) {
+    const { Alert } = require("../models");
+
+    const iconMap = {
+      irrigation: "irrigation",
+      temperature: "temperature",
+      rainfall: "rainfall",
+      wind: "wind",
+    };
+
+    const colorMap = {
+      irrigation: "green",
+      temperature: "red",
+      rainfall: "blue",
+      wind: "orange",
+    };
+
+    try {
+      await Alert.create({
+        farmerId,
+        landId: landId || null,
+        section: section || null,
+        alertType,
+        title,
+        description,
+        icon: iconMap[alertType] || null,
+        color: colorMap[alertType] || null,
+      });
+      logger.debug(`Alert created for farmer ${farmerId}: ${title}`);
+    } catch (error) {
+      logger.error(
+        `Error creating alert for farmer ${farmerId}:`,
+        error.message
+      );
+    }
+  }
+
+  /**
+   * Start weather alert generation cron job
+   * Runs daily to fetch 3-day forecast and generate alerts for farmers
    */
   static async startWeatherCronJob() {
     if (this.weatherJob) {
@@ -20,82 +66,201 @@ class CronService {
       logger.debug("Weather cron job is already running");
       return {
         message: "Weather cron job is already running",
-        schedule: "Every 30 minutes",
+        schedule: "Daily at midnight",
       };
     }
 
-    // Get all lands from database
+    // Get all farmers with lands from database
     const { sequelize } = require("../config/db");
-    const { Land } = require("../models");
+    const { Land, Farmer, SectionSoil } = require("../models");
 
-    const lands = await Land.findAll({
-      attributes: ["id"],
-      raw: true,
-    });
+    const farmersWithLands = await sequelize.query(
+      `SELECT DISTINCT f.id as farmer_id, l.id as land_id, l.lat, l.lng
+       FROM farmers f
+       INNER JOIN lands l ON f.id = l.client_id
+       WHERE l.lat IS NOT NULL AND l.lng IS NOT NULL`,
+      {
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
 
-    if (lands.length === 0) {
-      throw new Error("No lands found in database");
+    if (farmersWithLands.length === 0) {
+      throw new Error("No farmers with lands found in database");
     }
 
-    // Schedule job to run every 30 minutes
-    this.weatherJob = cron.schedule("*/30 * * * *", async () => {
+    // Schedule job to run daily at midnight (00:00)
+    // Cron format: "0 0 * * *" = minute 0, hour 0, every day
+    this.weatherJob = cron.schedule("0 0 * * *", async () => {
       try {
-        logger.info("Starting scheduled weather data fetch for all lands");
+        logger.info("Starting daily weather alert generation for all farmers");
         this.isRunning = true;
 
-        const { Land } = require("../models");
+        // Refresh farmers with lands
+        const currentFarmersLands = await sequelize.query(
+          `SELECT DISTINCT f.id as farmer_id, l.id as land_id, l.lat, l.lng
+           FROM farmers f
+           INNER JOIN lands l ON f.id = l.client_id
+           WHERE l.lat IS NOT NULL AND l.lng IS NOT NULL`,
+          {
+            type: sequelize.QueryTypes.SELECT,
+          }
+        );
 
-        // Refresh lands list in case new ones were added
-        const currentLands = await Land.findAll({
-          attributes: ["id"],
-        });
-
-        if (currentLands.length === 0) {
-          logger.warn("No lands found to process");
+        if (currentFarmersLands.length === 0) {
+          logger.warn("No farmers with lands found to process");
           this.isRunning = false;
           return;
         }
 
-        // Get base URL for internal API calls
-        const port = process.env.PORT || 3000;
-        const baseUrl = process.env.API_BASE_URL || `http://localhost:${port}`;
-        const apiUrl = `${baseUrl}/api/weather/fetch-and-save`;
-
-        // Fetch weather data for each land via HTTP request to internal endpoint
-        let processedCount = 0;
+        const WeatherService = require("./weather.service");
+        let alertsGenerated = 0;
         let errorCount = 0;
 
-        for (const land of currentLands) {
+        // Process each farmer-land combination
+        for (const item of currentFarmersLands) {
           try {
-            // Call the internal /api/weather/fetch-and-save endpoint
-            const response = await axios.post(apiUrl, {
-              landId: land.id,
-            });
+            const { farmer_id, land_id, lat, lng } = item;
 
-            if (response.data.success) {
-              processedCount++;
-              logger.info(
-                `Weather data updated for land ${land.id}: ${response.data.data.saved} records saved`
-              );
-            } else {
-              errorCount++;
-              logger.warn(
-                `Failed to update weather for land ${land.id}: ${response.data.message}`
-              );
+            // Fetch 3-day forecast using WeatherService
+            const forecastData = await WeatherService.fetchWeatherForecast(
+              parseFloat(lat),
+              parseFloat(lng)
+            );
+            const forecastDays = forecastData.forecast?.forecastday || [];
+
+            // Get latest soil data for this farmer/land
+            const soilData = await sequelize.query(
+              `SELECT section, soil_moisture, ph, electrical_conductivity, organic_carbon
+               FROM section_soils
+               WHERE client_id = :farmerId AND land_id = :landId
+               ORDER BY created_at DESC
+               LIMIT 10`,
+              {
+                replacements: { farmerId: farmer_id, landId: land_id },
+                type: sequelize.QueryTypes.SELECT,
+              }
+            );
+
+            // Process today's forecast (first day)
+            if (forecastDays.length > 0) {
+              const today = forecastDays[0];
+              const todayData = today.day;
+
+              // 1. Check for Irrigation Alert (low soil moisture)
+              if (soilData && soilData.length > 0) {
+                for (const soil of soilData) {
+                  const moisture = soil.soil_moisture
+                    ? parseFloat(soil.soil_moisture)
+                    : null;
+                  if (moisture !== null && moisture < 30) {
+                    await this.generateAlert(
+                      farmer_id,
+                      land_id,
+                      soil.section || null,
+                      "irrigation",
+                      "Irrigation Alert",
+                      `Soil moisture is low in ${
+                        soil.section ? `sector ${soil.section}` : "your land"
+                      } (${moisture.toFixed(
+                        1
+                      )}%). Immediate irrigation required.`
+                    );
+                    alertsGenerated++;
+                  }
+                }
+              }
+
+              // 2. Check for Temperature Warning
+              const maxTemp = todayData.maxtemp_c
+                ? parseFloat(todayData.maxtemp_c)
+                : null;
+              const minTemp = todayData.mintemp_c
+                ? parseFloat(todayData.mintemp_c)
+                : null;
+
+              if (maxTemp !== null && maxTemp > 35) {
+                await this.generateAlert(
+                  farmer_id,
+                  land_id,
+                  null,
+                  "temperature",
+                  "Temperature Warning",
+                  `High temperature expected today (${maxTemp.toFixed(
+                    1
+                  )}°C). Take precautions to protect your crops from heat stress.`
+                );
+                alertsGenerated++;
+              } else if (minTemp !== null && minTemp < 0) {
+                await this.generateAlert(
+                  farmer_id,
+                  land_id,
+                  null,
+                  "temperature",
+                  "Temperature Warning",
+                  `Low temperature expected today (${minTemp.toFixed(
+                    1
+                  )}°C). Frost risk - protect sensitive crops.`
+                );
+                alertsGenerated++;
+              }
+
+              // 3. Check for Rainfall Update
+              const rainfall = todayData.totalprecip_mm
+                ? parseFloat(todayData.totalprecip_mm)
+                : 0;
+              if (rainfall > 10) {
+                await this.generateAlert(
+                  farmer_id,
+                  land_id,
+                  null,
+                  "rainfall",
+                  "Rainfall Update",
+                  `Heavy rainfall expected today (${rainfall.toFixed(
+                    1
+                  )}mm). Adjust irrigation schedule and monitor for waterlogging.`
+                );
+                alertsGenerated++;
+              } else if (rainfall > 0) {
+                await this.generateAlert(
+                  farmer_id,
+                  land_id,
+                  null,
+                  "rainfall",
+                  "Rainfall Update",
+                  `Light rainfall expected today (${rainfall.toFixed(1)}mm).`
+                );
+                alertsGenerated++;
+              }
+
+              // 4. Check for Wind Advisory
+              const maxWind = todayData.maxwind_kph
+                ? parseFloat(todayData.maxwind_kph)
+                : null;
+              if (maxWind !== null && maxWind > 30) {
+                await this.generateAlert(
+                  farmer_id,
+                  land_id,
+                  null,
+                  "wind",
+                  "Wind Advisory",
+                  `Strong winds expected today (${maxWind.toFixed(
+                    1
+                  )} km/h). Secure any loose structures or equipment.`
+                );
+                alertsGenerated++;
+              }
             }
           } catch (error) {
             errorCount++;
-            const errorMessage =
-              error.response?.data?.message || error.message || "Unknown error";
             logger.error(
-              `Error fetching weather for land ${land.id}:`,
-              errorMessage
+              `Error processing alerts for farmer ${item.farmer_id}, land ${item.land_id}:`,
+              error.message
             );
           }
         }
 
         logger.info(
-          `Scheduled weather data fetch completed. Processed: ${processedCount}, Errors: ${errorCount}`
+          `Daily weather alert generation completed. Alerts generated: ${alertsGenerated}, Errors: ${errorCount}`
         );
         this.isRunning = false;
       } catch (error) {
@@ -104,11 +269,11 @@ class CronService {
       }
     });
 
-    logger.info("Weather cron job started (runs every 30 minutes)");
+    logger.info("Weather cron job started (runs daily at midnight)");
     return {
       message: "Weather cron job started successfully",
-      schedule: "Every 30 minutes",
-      landsCount: lands.length,
+      schedule: "Daily at midnight (00:00)",
+      farmersCount: farmersWithLands.length,
     };
   }
 
@@ -137,7 +302,7 @@ class CronService {
     return {
       isRunning: this.weatherJob !== null,
       isExecuting: this.isRunning,
-      schedule: this.weatherJob ? "Every 30 minutes" : null,
+      schedule: this.weatherJob ? "Daily at midnight (00:00)" : null,
     };
   }
 }
