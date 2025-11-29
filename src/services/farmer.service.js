@@ -1,4 +1,4 @@
-const { Farmer, Ing } = require("../models");
+const { Farmer, Ing, Land } = require("../models");
 const ApiError = require("../utils/ApiError");
 const { StatusCodes } = require("../constants");
 const { sequelize } = require("../config/db");
@@ -108,6 +108,29 @@ class FarmerService {
     };
 
     return farmer;
+  }
+
+  /**
+   * Get land IDs by farmer ID
+   */
+  static async getLandIdsByFarmerId(farmerId) {
+    // Verify farmer exists
+    const farmer = await Farmer.findByPk(farmerId);
+    if (!farmer) {
+      throw new ApiError(StatusCodes.NOT_FOUND, "Farmer not found");
+    }
+
+    // Get all land IDs for this farmer
+    const results = await sequelize.query(
+      `SELECT id FROM lands WHERE client_id = :farmerId ORDER BY id`,
+      {
+        replacements: { farmerId },
+        type: sequelize.QueryTypes.SELECT,
+      }
+    );
+
+    // Extract just the IDs
+    return results.map((row) => row.id);
   }
 }
 

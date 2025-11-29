@@ -61,9 +61,36 @@ const getFarmerById = catchAsync(async (req, res) => {
   res.status(StatusCodes.OK).json(response);
 });
 
+/**
+ * Get land IDs by farmer ID
+ */
+const getLandIdsByFarmer = catchAsync(async (req, res) => {
+  const { farmerId } = req.params;
+  const farmerIdNum = parseInt(farmerId, 10);
+
+  if (isNaN(farmerIdNum)) {
+    return res.status(StatusCodes.BAD_REQUEST).json({
+      success: false,
+      statusCode: StatusCodes.BAD_REQUEST,
+      message: "Invalid farmer ID",
+    });
+  }
+
+  const landIds = await FarmerService.getLandIdsByFarmerId(farmerIdNum);
+
+  const response = new ApiResponse(
+    StatusCodes.OK,
+    { landIds },
+    "Land IDs retrieved successfully"
+  );
+
+  res.status(StatusCodes.OK).json(response);
+});
+
 module.exports = {
   getAllFarmers,
   getFarmersByEngineer,
   getFarmerById,
+  getLandIdsByFarmer,
 };
 

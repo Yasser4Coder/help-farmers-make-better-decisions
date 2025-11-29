@@ -263,6 +263,86 @@ router.get("/my-farmers", apiLimiter, authenticateIng, farmerController.getFarme
  *                   type: string
  *                   example: "Farmer not found"
  */
+/**
+ * @swagger
+ * /api/farmers/{farmerId}/lands:
+ *   get:
+ *     summary: Get land IDs for a specific farmer
+ *     description: Retrieves all land IDs associated with a specific farmer.
+ *     tags: [Farmers]
+ *     parameters:
+ *       - in: path
+ *         name: farmerId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         description: Farmer ID
+ *         example: 1
+ *     responses:
+ *       200:
+ *         description: Land IDs retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 200
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     landIds:
+ *                       type: array
+ *                       description: Array of land IDs belonging to the farmer
+ *                       items:
+ *                         type: integer
+ *                       example: [1, 2, 3]
+ *                 message:
+ *                   type: string
+ *                   example: "Land IDs retrieved successfully"
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *       400:
+ *         description: Invalid farmer ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 400
+ *                 message:
+ *                   type: string
+ *                   example: "Invalid farmer ID"
+ *       404:
+ *         description: Farmer not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 statusCode:
+ *                   type: integer
+ *                   example: 404
+ *                 message:
+ *                   type: string
+ *                   example: "Farmer not found"
+ */
+router.get(
+  "/:farmerId/lands",
+  apiLimiter,
+  farmerController.getLandIdsByFarmer
+);
+
 router.get("/:id", apiLimiter, authenticateIng, farmerController.getFarmerById);
 
 /**
