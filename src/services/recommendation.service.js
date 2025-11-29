@@ -27,7 +27,7 @@ class RecommendationService {
     }
 
     if (normA === 0 || normB === 0) {
-      return math.random(0, 1);
+      return 0;
     }
 
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
